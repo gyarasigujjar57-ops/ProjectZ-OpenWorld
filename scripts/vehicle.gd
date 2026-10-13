@@ -10,6 +10,9 @@ var brake_pressed := false
 var left_pressed := false
 var right_pressed := false
 var touch_layer: CanvasLayer
+var vehicle_health := 100
+var vehicle_health_label: Label
+var crash_cooldown := 0.0
 
 func _ready() -> void:
 	var body_shape := CollisionShape3D.new()
@@ -40,6 +43,33 @@ func _ready() -> void:
 	drive_camera.current = false
 	add_child(drive_camera)
 	_create_drive_controls()
+	_create_vehicle_health_hud()
+
+func _create_vehicle_health_hud() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 7
+	add_child(layer)
+	vehicle_health_label = Label.new()
+	vehicle_health_label.position = Vector2(20, 145)
+	vehicle_health_label.add_theme_font_size_override("font_size", 22)
+	vehicle_health_label.text = "VEHICLE 100 / 100"
+	vehicle_health_label.visible = false
+	layer.add_child(vehicle_health_label)
+
+func _update_vehicle_health_hud() -> void:
+	if vehicle_health_label != null:
+		vehicle_health_label.text = "VEHICLE %d / 100" % vehicle_health
+		vehicle_health_label.visible = driver != null
+
+func take_vehicle_damage(amount: int) -> void:
+	if amount <= 0:
+		return
+	vehicle_health = maxi(0, vehicle_health - amount)
+	_update_vehicle_health_hud()
+
+func repair_vehicle(amount: int = 100) -> void:
+	vehicle_health = mini(100, vehicle_health + maxi(0, amount))
+	_update_vehicle_health_hud()
 
 func _add_part(at: Vector3, size: Vector3, color: Color) -> void:
 	var part := MeshInstance3D.new()
@@ -98,6 +128,7 @@ func enter_vehicle(who: CharacterBody3D) -> void:
 	driver.set_physics_process(false)
 	drive_camera.current = true
 	touch_layer.visible = true
+	_update_vehicle_health_hud()
 
 func exit_vehicle() -> void:
 	if driver == null:
@@ -111,6 +142,7 @@ func exit_vehicle() -> void:
 		old_driver.vehicle_exited()
 	drive_camera.current = false
 	touch_layer.visible = false
+	_update_vehicle_health_hud()
 	gas_pressed = false
 	brake_pressed = false
 	left_pressed = false
@@ -121,9 +153,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		exit_vehicle()
 
 func _physics_process(delta: float) -> void:
+	crash_cooldown = maxf(0.0, crash_cooldown - delta)
 	if driver == null:
 		velocity.x = move_toward(velocity.x, 0.0, acceleration * delta)
 		velocity.z = move_toward(velocity.z, 0.0, acceleration * delta)
+		return
+	if vehicle_health <= 0:
+		velocity.x = move_toward(velocity.x, 0.0, acceleration * 2.0 * delta)
+		velocity.z = move_toward(velocity.z, 0.0, acceleration * 2.0 * delta)
+		move_and_slide()
 		return
 	var throttle := float(gas_pressed) - float(brake_pressed)
 	if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
@@ -146,4 +184,10 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= 18.0 * delta
 	else:
 		velocity.y = -0.2
+	var impact_speed := Vector2(velocity.x, velocity.z).length()
 	move_and_slide()
+	if crash_cooldown <= 0.0 and get_slide_collision_count() > 0 and impact_speed > 12.0:
+		var collision := get_slide_collision(0)
+		if absf(collision.get_normal().y) < 0.65:
+			take_vehicle_damage(int((impact_speed - 12.0) * 1.5))
+			crash_cooldown = 1.2
