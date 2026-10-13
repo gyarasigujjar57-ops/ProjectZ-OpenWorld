@@ -251,7 +251,9 @@ func location_interacted(location_name: String) -> void:
 	if ui_label != null:
 		match location_name:
 			"HOSPITAL":
-				ui_label.text = "HOSPITAL • First-aid point\nMedical services are a prototype placeholder."
+				if is_instance_valid(player) and player.has_method("heal"):
+					player.heal(100)
+				ui_label.text = "HOSPITAL • Health restored to 100/100\nFirst-aid interaction is now working."
 			"GARAGE":
 				ui_label.text = "GARAGE • Vehicle service point\nRepair and customization are not implemented yet."
 			"POLICE":
