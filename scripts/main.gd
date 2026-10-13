@@ -191,6 +191,8 @@ func _make_npcs() -> void:
 		npc.name = "WanderingNPC_%02d" % (i + 1)
 		npc.position = Vector3(rng.randf_range(-100, 100), 1.0, rng.randf_range(-80, 80))
 		npc.set_script(load("res://scripts/npc_wanderer.gd"))
+		npc.add_to_group("wanderers")
+		npc.set_meta("npc_name", "Local Resident %02d" % (i + 1))
 		add_child(npc)
 
 
@@ -254,3 +256,14 @@ func location_interacted(location_name: String) -> void:
 				ui_label.text = "POLICE STATION • Safe-zone prototype\nWanted levels and police AI are not implemented yet."
 			_:
 				ui_label.text = location_name
+
+
+func npc_interacted(npc_name: String) -> void:
+	if ui_label != null:
+		var lines := [
+			"Welcome to Project Z. The highway leads toward the city.",
+			"Keep an eye out for glowing rings; they mark exploration objectives.",
+			"The garage is the place to visit when vehicle service gameplay is added."
+		]
+		var line: String = lines[randi() % lines.size()]
+		ui_label.text = npc_name + "\n\"" + line + "\""
