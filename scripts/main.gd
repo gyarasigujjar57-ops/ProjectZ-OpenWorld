@@ -5,6 +5,8 @@ var player: CharacterBody3D
 var ui_label: Label
 var missions_completed := 0
 var missions_total := 3
+var credits := 0
+var completed_mission_titles: Array[String] = []
 
 func _ready() -> void:
 	_make_environment()
@@ -212,11 +214,15 @@ func _make_missions() -> void:
 		add_child(marker)
 
 func mission_completed(title: String, reward_text: String) -> void:
+	if completed_mission_titles.has(title):
+		return
+	completed_mission_titles.append(title)
+	missions_completed = mini(completed_mission_titles.size(), missions_total)
+	var reward_credits := 250
+	credits += reward_credits
+	var next_text := "All prototype objectives visited." if missions_completed >= missions_total else "Find the next glowing ring."
 	if ui_label != null:
-		missions_completed = mini(missions_completed + 1, missions_total)
-		var next_text := "All prototype objectives visited." if missions_completed >= missions_total else "Find the next glowing ring."
-		ui_label.text = "OBJECTIVE COMPLETE: " + title + "\n" + reward_text + "\nMISSIONS %d/%d  •  %s" % [missions_completed, missions_total, next_text]
-
+		ui_label.text = "OBJECTIVE COMPLETE: " + title + "\n" + reward_text + "  •  +" + str(reward_credits) + " CASH\nMISSIONS %d/%d  •  CASH %d\n%s" % [missions_completed, missions_total, credits, next_text]
 
 func _make_service_locations() -> void:
 	_add_service_building("HOSPITAL", Vector3(80, 0, 50), Vector3(22, 12, 18), Color(0.82, 0.84, 0.82))
