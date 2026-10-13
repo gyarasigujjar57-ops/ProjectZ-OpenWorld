@@ -11,6 +11,7 @@ func _ready() -> void:
 	_make_roads()
 	_make_targets()
 	_make_vehicle()
+	_make_npcs()
 	_make_player()
 	_make_ui()
 
@@ -176,3 +177,14 @@ func _make_vehicle() -> void:
 	vehicle.set_script(load("res://scripts/vehicle.gd"))
 	vehicle.add_to_group("vehicles")
 	add_child(vehicle)
+
+
+func _make_npcs() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	for i in range(12):
+		var npc := CharacterBody3D.new()
+		npc.name = "WanderingNPC_%02d" % (i + 1)
+		npc.position = Vector3(rng.randf_range(-100, 100), 1.0, rng.randf_range(-80, 80))
+		npc.set_script(load("res://scripts/npc_wanderer.gd"))
+		add_child(npc)
