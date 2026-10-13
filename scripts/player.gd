@@ -202,6 +202,20 @@ func vehicle_exited() -> void:
 
 
 func _interact_location() -> void:
+	var nearest_npc: Node3D = null
+	var npc_distance := 4.0
+	for npc in get_tree().get_nodes_in_group("wanderers"):
+		if not is_instance_valid(npc):
+			continue
+		var distance := global_position.distance_to(npc.global_position)
+		if distance < npc_distance:
+			npc_distance = distance
+			nearest_npc = npc
+	if nearest_npc != null:
+		var root := get_tree().current_scene
+		if root != null and root.has_method("npc_interacted"):
+			root.npc_interacted(str(nearest_npc.get_meta("npc_name", nearest_npc.name)))
+		return
 	var nearest_name := ""
 	var nearest_distance := 14.0
 	for place in get_tree().get_nodes_in_group("service_locations"):
