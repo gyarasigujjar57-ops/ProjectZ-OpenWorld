@@ -122,6 +122,8 @@ func _mobile_jump() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_E:
 		_toggle_vehicle()
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F:
+		_interact_location()
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_shoot()
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
@@ -189,3 +191,19 @@ func _toggle_vehicle() -> void:
 
 func vehicle_exited() -> void:
 	current_vehicle = null
+
+
+func _interact_location() -> void:
+	var nearest_name := ""
+	var nearest_distance := 14.0
+	for place in get_tree().get_nodes_in_group("service_locations"):
+		if not is_instance_valid(place):
+			continue
+		var distance := global_position.distance_to(place.global_position)
+		if distance < nearest_distance:
+			nearest_distance = distance
+			nearest_name = str(place.get_meta("service_name", place.name))
+	if nearest_name != "":
+		var root := get_tree().current_scene
+		if root != null and root.has_method("location_interacted"):
+			root.location_interacted(nearest_name)
