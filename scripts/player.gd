@@ -73,6 +73,15 @@ func _create_mobile_controls() -> void:
 	jump.modulate = Color(1, 1, 1, 0.85)
 	layer.add_child(jump)
 	jump.button_down.connect(func(): _mobile_jump())
+	var fire := Button.new()
+	fire.text = "FIRE"
+	fire.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	fire.position = Vector2(-220, -94)
+	fire.size = Vector2(88, 62)
+	fire.focus_mode = Control.FOCUS_NONE
+	fire.modulate = Color(1.0, 0.72, 0.68, 0.9)
+	layer.add_child(fire)
+	fire.button_down.connect(func(): _shoot())
 	var sprint := Button.new()
 	sprint.text = "RUN"
 	sprint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -102,6 +111,8 @@ func _mobile_jump() -> void:
 		velocity.y = jump_velocity
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_shoot()
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		rotate_y(-event.relative.x * look_sensitivity)
 		camera_pivot.rotate_x(-event.relative.y * look_sensitivity)
@@ -128,3 +139,18 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("ui_accept") and is_on_floor():
 		velocity.y = jump_velocity
 	move_and_slide()
+
+
+func _shoot() -> void:
+	if camera == null:
+		return
+	var from := camera.global_position
+	var to := from + (-camera.global_transform.basis.z * 120.0)
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.exclude = [self]
+	var hit_result := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit_result.is_empty():
+		return
+	var collider = hit_result.get("collider")
+	if collider != null and collider.has_method("hit"):
+		collider.hit()
