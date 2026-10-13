@@ -8,6 +8,10 @@ var look_sensitivity := 0.002
 var camera_pivot: Node3D
 var camera: Camera3D
 var touch_move := Vector2.ZERO
+var touch_up := false
+var touch_down := false
+var touch_left := false
+var touch_right := false
 var touch_sprint := false
 var current_vehicle: CharacterBody3D
 
@@ -118,10 +122,15 @@ func _create_mobile_controls() -> void:
 	layer.add_child(hint)
 
 func _set_touch_direction(direction: Vector2, pressed: bool) -> void:
-	if pressed:
-		touch_move = direction
-	elif touch_move == direction:
-		touch_move = Vector2.ZERO
+	if direction.y < -0.5:
+		touch_up = pressed
+	elif direction.y > 0.5:
+		touch_down = pressed
+	elif direction.x < -0.5:
+		touch_left = pressed
+	elif direction.x > 0.5:
+		touch_right = pressed
+	touch_move = Vector2(float(touch_right) - float(touch_left), float(touch_down) - float(touch_up)).limit_length(1.0)
 
 func _mobile_jump() -> void:
 	if is_on_floor():
