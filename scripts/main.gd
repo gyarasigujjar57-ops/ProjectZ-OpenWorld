@@ -3,6 +3,8 @@ extends Node3D
 const WORLD_SIZE := 5500.0
 var player: CharacterBody3D
 var ui_label: Label
+var missions_completed := 0
+var missions_total := 3
 
 func _ready() -> void:
 	_make_environment()
@@ -109,7 +111,7 @@ func _make_ui() -> void:
 	panel.custom_minimum_size = Vector2(340, 72)
 	layer.add_child(panel)
 	ui_label = Label.new()
-	ui_label.text = "PROJECT Z  •  OPEN WORLD PROTOTYPE\nExplore the glowing objective rings to begin missions."
+	ui_label.text = "PROJECT Z  •  OPEN WORLD PROTOTYPE\nMISSIONS 0/3  •  Reach a glowing objective ring."
 	panel.add_child(ui_label)
 
 
@@ -175,7 +177,7 @@ func _make_targets() -> void:
 func _make_vehicle() -> void:
 	var vehicle := CharacterBody3D.new()
 	vehicle.name = "StarterCar"
-	vehicle.position = Vector3(6, 0.8, 2)
+	vehicle.position = Vector3(6, 0.3, 2)
 	vehicle.set_script(load("res://scripts/vehicle.gd"))
 	vehicle.add_to_group("vehicles")
 	add_child(vehicle)
@@ -209,7 +211,7 @@ func _make_missions() -> void:
 
 func mission_completed(title: String, reward_text: String) -> void:
 	if ui_label != null:
-		ui_label.text = "OBJECTIVE COMPLETE: " + title + "\n" + reward_text + " • Explore the next glowing ring."
+		missions_completed = mini(missions_completed + 1, missions_total)\n\t\tvar next_text := "All prototype objectives visited." if missions_completed >= missions_total else "Find the next glowing ring."\n\t\tui_label.text = "OBJECTIVE COMPLETE: " + title + "\n" + reward_text + "\nMISSIONS %d/%d  •  %s" % [missions_completed, missions_total, next_text]
 
 
 func _make_service_locations() -> void:
