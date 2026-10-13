@@ -9,6 +9,7 @@ var camera_pivot: Node3D
 var camera: Camera3D
 var touch_move := Vector2.ZERO
 var touch_sprint := false
+var current_vehicle: CharacterBody3D
 
 func _ready() -> void:
 	var shape := CapsuleShape3D.new()
@@ -73,6 +74,14 @@ func _create_mobile_controls() -> void:
 	jump.modulate = Color(1, 1, 1, 0.85)
 	layer.add_child(jump)
 	jump.button_down.connect(func(): _mobile_jump())
+	var enter := Button.new()
+	enter.text = "ENTER / EXIT"
+	enter.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	enter.position = Vector2(-224, -170)
+	enter.size = Vector2(108, 58)
+	enter.focus_mode = Control.FOCUS_NONE
+	layer.add_child(enter)
+	enter.button_down.connect(func(): _toggle_vehicle())
 	var fire := Button.new()
 	fire.text = "FIRE"
 	fire.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -111,6 +120,8 @@ func _mobile_jump() -> void:
 		velocity.y = jump_velocity
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_E:
+		_toggle_vehicle()
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_shoot()
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
@@ -128,6 +139,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _physics_process(delta: float) -> void:
+	if current_vehicle != null:
+		return
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 	var keyboard := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
@@ -154,3 +167,25 @@ func _shoot() -> void:
 	var collider = hit_result.get("collider")
 	if collider != null and collider.has_method("hit"):
 		collider.hit()
+
+
+func _toggle_vehicle() -> void:
+	if current_vehicle != null:
+		if current_vehicle.has_method("exit_vehicle"):
+			current_vehicle.exit_vehicle()
+		return
+	var nearest: Node = null
+	var nearest_distance := 4.5
+	for vehicle in get_tree().get_nodes_in_group("vehicles"):
+		if not is_instance_valid(vehicle):
+			continue
+		var distance := global_position.distance_to(vehicle.global_position)
+		if distance < nearest_distance:
+			nearest = vehicle
+			nearest_distance = distance
+	if nearest != null and nearest.has_method("enter_vehicle"):
+		current_vehicle = nearest
+		nearest.enter_vehicle(self)
+
+func vehicle_exited() -> void:
+	current_vehicle = null
