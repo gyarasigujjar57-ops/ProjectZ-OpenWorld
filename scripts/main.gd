@@ -213,7 +213,9 @@ func _make_missions() -> void:
 
 func mission_completed(title: String, reward_text: String) -> void:
 	if ui_label != null:
-		missions_completed = mini(missions_completed + 1, missions_total)\n\t\tvar next_text := "All prototype objectives visited." if missions_completed >= missions_total else "Find the next glowing ring."\n\t\tui_label.text = "OBJECTIVE COMPLETE: " + title + "\n" + reward_text + "\nMISSIONS %d/%d  •  %s" % [missions_completed, missions_total, next_text]
+		missions_completed = mini(missions_completed + 1, missions_total)
+		var next_text := "All prototype objectives visited." if missions_completed >= missions_total else "Find the next glowing ring."
+		ui_label.text = "OBJECTIVE COMPLETE: " + title + "\n" + reward_text + "\nMISSIONS %d/%d  •  %s" % [missions_completed, missions_total, next_text]
 
 
 func _make_service_locations() -> void:
