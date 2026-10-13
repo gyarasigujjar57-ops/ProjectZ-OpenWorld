@@ -13,6 +13,7 @@ func _ready() -> void:
 	_make_vehicle()
 	_make_npcs()
 	_make_missions()
+	_make_service_locations()
 	_make_player()
 	_make_ui()
 
@@ -209,3 +210,45 @@ func _make_missions() -> void:
 func mission_completed(title: String, reward_text: String) -> void:
 	if ui_label != null:
 		ui_label.text = "OBJECTIVE COMPLETE: " + title + "\n" + reward_text + " • Explore the next glowing ring."
+
+
+func _make_service_locations() -> void:
+	_add_service_building("HOSPITAL", Vector3(80, 0, 50), Vector3(22, 12, 18), Color(0.82, 0.84, 0.82))
+	_add_service_building("GARAGE", Vector3(35, 0, 65), Vector3(24, 8, 20), Color(0.24, 0.31, 0.38))
+	_add_service_building("POLICE", Vector3(-70, 0, 45), Vector3(22, 10, 18), Color(0.22, 0.32, 0.48))
+
+func _add_service_building(label_text: String, at: Vector3, size: Vector3, color: Color) -> void:
+	var building := StaticBody3D.new()
+	building.name = label_text + "Station"
+	building.position = at
+	var mesh := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = size
+	mesh.mesh = box
+	mesh.position.y = size.y / 2
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.roughness = 0.8
+	mesh.material_override = mat
+	building.add_child(mesh)
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = size
+	collision.shape = shape
+	collision.position.y = size.y / 2
+	building.add_child(collision)
+	building.add_to_group("service_locations")
+	building.set_meta("service_name", label_text)
+	add_child(building)
+
+func location_interacted(location_name: String) -> void:
+	if ui_label != null:
+		match location_name:
+			"HOSPITAL":
+				ui_label.text = "HOSPITAL • First-aid point\nMedical services are a prototype placeholder."
+			"GARAGE":
+				ui_label.text = "GARAGE • Vehicle service point\nRepair and customization are not implemented yet."
+			"POLICE":
+				ui_label.text = "POLICE STATION • Safe-zone prototype\nWanted levels and police AI are not implemented yet."
+			_:
+				ui_label.text = location_name
