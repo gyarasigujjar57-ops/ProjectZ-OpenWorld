@@ -224,6 +224,13 @@ func mission_completed(title: String, reward_text: String) -> void:
 	if ui_label != null:
 		ui_label.text = "OBJECTIVE COMPLETE: " + title + "\n" + reward_text + "  •  +" + str(reward_credits) + " CASH\nMISSIONS %d/%d  •  CASH %d\n%s" % [missions_completed, missions_total, credits, next_text]
 
+
+func target_destroyed(target_name: String) -> void:
+	credits += 50
+	if ui_label != null:
+		ui_label.text = "TARGET DESTROYED • " + target_name + "\\n+" + "50 CASH" + "  •  TOTAL CASH %d\\nPractice range: target cleared." % credits
+
+
 func _make_service_locations() -> void:
 	_add_service_building("HOSPITAL", Vector3(80, 0, 50), Vector3(22, 12, 18), Color(0.82, 0.84, 0.82))
 	_add_service_building("GARAGE", Vector3(35, 0, 65), Vector3(24, 8, 20), Color(0.24, 0.31, 0.38))
