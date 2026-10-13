@@ -82,6 +82,14 @@ func _create_mobile_controls() -> void:
 	enter.focus_mode = Control.FOCUS_NONE
 	layer.add_child(enter)
 	enter.button_down.connect(func(): _toggle_vehicle())
+	var interact := Button.new()
+	interact.text = "INTERACT"
+	interact.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	interact.position = Vector2(-220, -24)
+	interact.size = Vector2(108, 52)
+	interact.focus_mode = Control.FOCUS_NONE
+	layer.add_child(interact)
+	interact.button_down.connect(func(): _interact_location())
 	var fire := Button.new()
 	fire.text = "FIRE"
 	fire.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
