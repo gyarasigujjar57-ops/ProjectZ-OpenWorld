@@ -8,6 +8,8 @@ func _ready() -> void:
 	_make_environment()
 	_make_ground()
 	_make_regions()
+	_make_roads()
+	_make_targets()
 	_make_player()
 	_make_ui()
 
@@ -105,3 +107,62 @@ func _make_ui() -> void:
 	ui_label = Label.new()
 	ui_label.text = "PROJECT Z  •  OPEN WORLD PROTOTYPE\nWASD move  |  Shift sprint  |  Space jump  |  Esc mouse"
 	panel.add_child(ui_label)
+
+
+func _make_roads() -> void:
+	_add_road("Desert Highway", Vector3(-400, 0.08, 0), Vector3(1800, 0.16, 26), Color(0.16, 0.17, 0.18))
+	_add_road("City Boulevard", Vector3(950, 0.09, -450), Vector3(900, 0.18, 24), Color(0.13, 0.14, 0.15))
+	_add_road("Industrial Road", Vector3(900, 0.09, 1050), Vector3(700, 0.18, 22), Color(0.15, 0.16, 0.17))
+	_add_road("Cross Road", Vector3(250, 0.09, 200), Vector3(24, 0.18, 1050), Color(0.16, 0.17, 0.18))
+
+func _add_road(label: String, center: Vector3, span: Vector3, color: Color) -> void:
+	var road := MeshInstance3D.new()
+	road.name = label
+	var mesh := BoxMesh.new()
+	mesh.size = span
+	road.mesh = mesh
+	road.position = center
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.roughness = 0.95
+	road.material_override = mat
+	add_child(road)
+	# Broken white centre markings help the player read the road direction.
+	if span.x > span.z:
+		for x in range(-int(span.x / 2) + 20, int(span.x / 2), 42):
+			_add_road_mark(Vector3(center.x + x, center.y + 0.1, center.z), Vector3(18, 0.04, 0.7))
+	else:
+		for z in range(-int(span.z / 2) + 20, int(span.z / 2), 42):
+			_add_road_mark(Vector3(center.x, center.y + 0.1, center.z + z), Vector3(0.7, 0.04, 18))
+
+func _add_road_mark(at: Vector3, span: Vector3) -> void:
+	var mark := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = span
+	mark.mesh = mesh
+	mark.position = at
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.88, 0.86, 0.73)
+	mark.material_override = mat
+	add_child(mark)
+
+func _make_targets() -> void:
+	for i in range(6):
+		var target := StaticBody3D.new()
+		target.name = "PracticeTarget_%02d" % (i + 1)
+		target.position = Vector3(0, 1.1, -18 - i * 5)
+		target.set_script(load("res://scripts/target.gd"))
+		var collision := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = Vector3(1.2, 2.2, 0.7)
+		collision.shape = shape
+		target.add_child(collision)
+		var visual := MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(1.2, 2.2, 0.7)
+		visual.mesh = mesh
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.72, 0.18, 0.12)
+		visual.material_override = mat
+		target.add_child(visual)
+		add_child(target)
