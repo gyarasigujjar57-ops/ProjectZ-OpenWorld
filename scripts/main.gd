@@ -261,7 +261,16 @@ func location_interacted(location_name: String) -> void:
 					player.heal(100)
 				ui_label.text = "HOSPITAL • Health restored to 100/100\nFirst-aid interaction is now working."
 			"GARAGE":
-				ui_label.text = "GARAGE • Vehicle service point\nRepair and customization are not implemented yet."
+				var repaired := false
+				for vehicle in get_tree().get_nodes_in_group("vehicles"):
+					if is_instance_valid(vehicle) and vehicle.has_method("repair_vehicle"):
+						vehicle.repair_vehicle(100)
+						repaired = true
+						break
+				if repaired:
+					ui_label.text = "GARAGE • Vehicle repaired to 100/100\nPrototype service complete."
+				else:
+					ui_label.text = "GARAGE • No repairable vehicle found."
 			"POLICE":
 				ui_label.text = "POLICE STATION • Safe-zone prototype\nWanted levels and police AI are not implemented yet."
 			_:
