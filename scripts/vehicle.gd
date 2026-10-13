@@ -5,8 +5,10 @@ extends CharacterBody3D
 @export var steering_speed := 1.45
 var driver: CharacterBody3D
 var drive_camera: Camera3D
-var throttle_touch := 0.0
-var steer_touch := 0.0
+var gas_pressed := false
+var brake_pressed := false
+var left_pressed := false
+var right_pressed := false
 var touch_layer: CanvasLayer
 
 func _ready() -> void:
@@ -63,32 +65,32 @@ func _create_drive_controls() -> void:
 	gas.position = Vector2(-110, -170)
 	gas.size = Vector2(92, 64)
 	touch_layer.add_child(gas)
-	gas.button_down.connect(func(): throttle_touch = 1.0)
-	gas.button_up.connect(func(): throttle_touch = 0.0)
+	gas.button_down.connect(func(): gas_pressed = true)
+	gas.button_up.connect(func(): gas_pressed = false)
 	var brake := Button.new()
 	brake.text = "BRAKE"
 	brake.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	brake.position = Vector2(-210, -96)
 	brake.size = Vector2(92, 64)
 	touch_layer.add_child(brake)
-	brake.button_down.connect(func(): throttle_touch = -1.0)
-	brake.button_up.connect(func(): throttle_touch = 0.0)
+	brake.button_down.connect(func(): brake_pressed = true)
+	brake.button_up.connect(func(): brake_pressed = false)
 	var left := Button.new()
 	left.text = "◀"
 	left.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	left.position = Vector2(24, -112)
 	left.size = Vector2(68, 60)
 	touch_layer.add_child(left)
-	left.button_down.connect(func(): steer_touch = 1.0)
-	left.button_up.connect(func(): steer_touch = 0.0)
+	left.button_down.connect(func(): left_pressed = true)
+	left.button_up.connect(func(): left_pressed = false)
 	var right := Button.new()
 	right.text = "▶"
 	right.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	right.position = Vector2(100, -112)
 	right.size = Vector2(68, 60)
 	touch_layer.add_child(right)
-	right.button_down.connect(func(): steer_touch = -1.0)
-	right.button_up.connect(func(): steer_touch = 0.0)
+	right.button_down.connect(func(): right_pressed = true)
+	right.button_up.connect(func(): right_pressed = false)
 
 func enter_vehicle(who: CharacterBody3D) -> void:
 	driver = who
@@ -109,8 +111,10 @@ func exit_vehicle() -> void:
 		old_driver.vehicle_exited()
 	drive_camera.current = false
 	touch_layer.visible = false
-	throttle_touch = 0.0
-	steer_touch = 0.0
+	gas_pressed = false
+	brake_pressed = false
+	left_pressed = false
+	right_pressed = false
 
 func _unhandled_input(event: InputEvent) -> void:
 	if driver != null and event.is_action_pressed("ui_cancel"):
@@ -121,12 +125,12 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, acceleration * delta)
 		velocity.z = move_toward(velocity.z, 0.0, acceleration * delta)
 		return
-	var throttle := throttle_touch
+	var throttle := float(gas_pressed) - float(brake_pressed)
 	if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
 		throttle = 1.0
 	elif Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
 		throttle = -0.65
-	var steer := steer_touch
+	var steer := float(left_pressed) - float(right_pressed)
 	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
 		steer = 1.0
 	elif Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
