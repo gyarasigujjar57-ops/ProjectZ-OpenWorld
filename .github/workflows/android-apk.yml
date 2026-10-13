@@ -1,0 +1,37 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "project.godot"
+      - "scenes/**"
+      - "scripts/**"
+      - "export_presets.cfg"
+      - ".github/workflows/android-apk.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  export-android:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Verify project imports
+        run: godot --headless --editor --path . --quit
+      - name: Export Android debug APK
+        run: |
+          mkdir -p build
+          godot --headless --path . --export-debug "Android" build/ProjectZ-Android.apk
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProjectZ-Android-debug
+          path: build/ProjectZ-Android.apk
+          if-no-files-found: error
+          retention-days: 14
