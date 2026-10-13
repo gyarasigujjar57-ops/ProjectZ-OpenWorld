@@ -12,6 +12,7 @@ func _ready() -> void:
 	_make_targets()
 	_make_vehicle()
 	_make_npcs()
+	_make_missions()
 	_make_player()
 	_make_ui()
 
@@ -107,7 +108,7 @@ func _make_ui() -> void:
 	panel.custom_minimum_size = Vector2(340, 72)
 	layer.add_child(panel)
 	ui_label = Label.new()
-	ui_label.text = "PROJECT Z  •  OPEN WORLD PROTOTYPE\nWASD move  |  Shift sprint  |  Space jump  |  Esc mouse"
+	ui_label.text = "PROJECT Z  •  OPEN WORLD PROTOTYPE\nExplore the glowing objective rings to begin missions."
 	panel.add_child(ui_label)
 
 
@@ -188,3 +189,23 @@ func _make_npcs() -> void:
 		npc.position = Vector3(rng.randf_range(-100, 100), 1.0, rng.randf_range(-80, 80))
 		npc.set_script(load("res://scripts/npc_wanderer.gd"))
 		add_child(npc)
+
+
+func _make_missions() -> void:
+	var missions := [
+		{"title":"Desert Checkpoint", "position":Vector3(-35, 0.1, -30), "reward":"Checkpoint reached"},
+		{"title":"Village Visit", "position":Vector3(-850, 0.1, -680), "reward":"Village explored"},
+		{"title":"City Arrival", "position":Vector3(850, 0.1, -420), "reward":"City explored"}
+	]
+	for item in missions:
+		var marker := Area3D.new()
+		marker.name = item.title.replace(" ", "") + "Objective"
+		marker.position = item.position
+		marker.set_script(load("res://scripts/mission_marker.gd"))
+		marker.set("mission_title", item.title)
+		marker.set("reward_text", item.reward)
+		add_child(marker)
+
+func mission_completed(title: String, reward_text: String) -> void:
+	if ui_label != null:
+		ui_label.text = "OBJECTIVE COMPLETE: " + title + "\n" + reward_text + " • Explore the next glowing ring."
