@@ -14,6 +14,8 @@ var touch_left := false
 var touch_right := false
 var touch_sprint := false
 var current_vehicle: CharacterBody3D
+var health := 100
+var health_label: Label
 
 func _ready() -> void:
 	var shape := CapsuleShape3D.new()
@@ -42,6 +44,37 @@ func _ready() -> void:
 	camera.current = true
 	camera_pivot.add_child(camera)
 	_create_mobile_controls()
+	_create_health_hud()
+
+
+func _create_health_hud() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "StatusHUD"
+	layer.layer = 4
+	add_child(layer)
+	health_label = Label.new()
+	health_label.position = Vector2(20, 100)
+	health_label.size = Vector2(220, 34)
+	health_label.add_theme_font_size_override("font_size", 22)
+	layer.add_child(health_label)
+	_update_health_hud()
+
+func _update_health_hud() -> void:
+	if health_label != null:
+		health_label.text = "HEALTH  %d / 100" % health
+
+func heal(amount: int = 100) -> void:
+	health = mini(100, health + maxi(0, amount))
+	_update_health_hud()
+
+func take_damage(amount: int) -> void:
+	health = maxi(0, health - maxi(0, amount))
+	_update_health_hud()
+	if health <= 0:
+		health = 100
+		global_position = Vector3(0, 2, 0)
+		velocity = Vector3.ZERO
+		_update_health_hud()
 
 func _create_mobile_controls() -> void:
 	var layer := CanvasLayer.new()
