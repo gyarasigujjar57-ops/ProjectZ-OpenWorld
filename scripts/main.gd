@@ -10,6 +10,7 @@ func _ready() -> void:
 	_make_regions()
 	_make_roads()
 	_make_targets()
+	_make_vehicle()
 	_make_player()
 	_make_ui()
 
@@ -166,3 +167,12 @@ func _make_targets() -> void:
 		visual.material_override = mat
 		target.add_child(visual)
 		add_child(target)
+
+
+func _make_vehicle() -> void:
+	var vehicle := CharacterBody3D.new()
+	vehicle.name = "StarterCar"
+	vehicle.position = Vector3(6, 0.8, 2)
+	vehicle.set_script(load("res://scripts/vehicle.gd"))
+	vehicle.add_to_group("vehicles")
+	add_child(vehicle)
