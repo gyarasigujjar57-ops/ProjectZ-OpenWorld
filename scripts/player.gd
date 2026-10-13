@@ -193,6 +193,10 @@ func _unhandled_input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	if current_vehicle != null:
 		return
+	if global_position.y < -5.0:
+		take_damage(25)
+		global_position = Vector3(0, 2, 0)
+		velocity = Vector3.ZERO
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 	var keyboard := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
