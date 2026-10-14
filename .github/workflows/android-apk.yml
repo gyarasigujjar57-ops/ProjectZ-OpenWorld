@@ -42,6 +42,7 @@ jobs:
         run: godot --headless --editor --path . --quit
 
       - name: Export Android debug APK
+        shell: bash
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
         run: |
