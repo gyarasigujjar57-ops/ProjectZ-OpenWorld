@@ -12,6 +12,7 @@ func _ready() -> void:
 	_make_environment()
 	_make_ground()
 	_make_regions()
+	_make_home_compound()
 	_make_roads()
 	_make_targets()
 	_make_vehicle()
@@ -293,3 +294,134 @@ func npc_interacted(npc_name: String) -> void:
 		]
 		var line: String = lines[randi() % lines.size()]
 		ui_label.text = npc_name + "\n\"" + line + "\""
+
+
+# Starter family home: walkable two-storey house, roof tank, furnished rooms and five residents.
+func _make_home_compound() -> void:
+	var home := Node3D.new()
+	home.name = "WalkableFamilyHome"
+	home.position = Vector3(-22, 0, 20)
+	add_child(home)
+	var plaster := _home_material(Color(0.83, 0.72, 0.57))
+	var trim := _home_material(Color(0.42, 0.24, 0.15))
+	var floor_mat := _home_material(Color(0.56, 0.42, 0.29))
+	var blue := _home_material(Color(0.12, 0.32, 0.62))
+	var cream := _home_material(Color(0.86, 0.81, 0.67))
+	var green := _home_material(Color(0.18, 0.42, 0.28))
+	var pink := _home_material(Color(0.78, 0.26, 0.42))
+	# Ground-floor slab and first-floor slab. The front has a real doorway gap.
+	_home_box(home, "GroundFloor", Vector3(0, 0.12, 0), Vector3(12, 0.24, 10), floor_mat, true)
+	_home_box(home, "FirstFloor", Vector3(0, 3.15, 0), Vector3(12, 0.24, 10), floor_mat, true)
+	# Ground-floor walls, deliberately leaving the front entrance open.
+	_home_box(home, "BackWall", Vector3(0, 1.55, -4.9), Vector3(12, 3.1, 0.22), plaster, true)
+	_home_box(home, "LeftWall", Vector3(-5.9, 1.55, 0), Vector3(0.22, 3.1, 10), plaster, true)
+	_home_box(home, "RightWall", Vector3(5.9, 1.55, 0), Vector3(0.22, 3.1, 10), plaster, true)
+	_home_box(home, "FrontLeftWall", Vector3(-4.7, 1.55, 4.9), Vector3(2.4, 3.1, 0.22), plaster, true)
+	_home_box(home, "FrontRightWall", Vector3(4.7, 1.55, 4.9), Vector3(2.4, 3.1, 0.22), plaster, true)
+	_home_box(home, "FrontLintel", Vector3(0, 2.85, 4.9), Vector3(7, 0.5, 0.22), plaster, true)
+	# Upper storey walls and open landing access.
+	_home_box(home, "UpperBackWall", Vector3(0, 4.7, -4.9), Vector3(12, 3.1, 0.22), plaster, true)
+	_home_box(home, "UpperLeftWall", Vector3(-5.9, 4.7, 0), Vector3(0.22, 3.1, 10), plaster, true)
+	_home_box(home, "UpperRightWall", Vector3(5.9, 4.7, 0), Vector3(0.22, 3.1, 10), plaster, true)
+	_home_box(home, "UpperFrontLeft", Vector3(-4.4, 4.7, 4.9), Vector3(3.0, 3.1, 0.22), plaster, true)
+	_home_box(home, "UpperFrontRight", Vector3(4.4, 4.7, 4.9), Vector3(3.0, 3.1, 0.22), plaster, true)
+	_home_box(home, "UpperFrontLintel", Vector3(0, 6.0, 4.9), Vector3(5.8, 0.45, 0.22), plaster, true)
+	# Interior partition walls form a living room and kitchen downstairs, bedroom upstairs.
+	_home_box(home, "KitchenDivider", Vector3(2.3, 1.55, -1.2), Vector3(0.16, 3.1, 4.0), trim, true)
+	_home_box(home, "BedroomDivider", Vector3(-1.5, 4.7, -1.7), Vector3(0.16, 3.1, 6.0), trim, true)
+	# Simple solid steps give a visible climb to the upper floor.
+	for i in range(9):
+		var step := _home_box(home, "Stair_%02d" % i, Vector3(4.0, 0.18 + i * 0.34, 3.5 - i * 0.78), Vector3(1.5, 0.36, 0.92), trim, true)
+		step.rotation.y = 0.0
+	# Furnished ground floor: sofa, low table, TV cabinet, kitchen counter and sink.
+	_home_box(home, "SofaBase", Vector3(-3.8, 0.55, 0.7), Vector3(2.5, 0.55, 0.9), blue, false)
+	_home_box(home, "SofaBack", Vector3(-3.8, 1.05, 0.25), Vector3(2.5, 0.65, 0.22), blue, false)
+	_home_box(home, "CoffeeTable", Vector3(-2.1, 0.48, 1.2), Vector3(1.3, 0.12, 0.8), trim, false)
+	_home_box(home, "TVStand", Vector3(-5.1, 0.5, -2.4), Vector3(0.35, 0.8, 1.7), trim, false)
+	_home_box(home, "Television", Vector3(-4.85, 1.25, -2.4), Vector3(0.12, 1.0, 1.45), _home_material(Color(0.025, 0.035, 0.05)), false)
+	_home_box(home, "KitchenCounter", Vector3(4.0, 0.62, -2.8), Vector3(2.5, 1.0, 1.1), cream, false)
+	_home_box(home, "Sink", Vector3(3.6, 1.15, -2.8), Vector3(0.8, 0.06, 0.55), _home_material(Color(0.48, 0.62, 0.66)), false)
+	_home_box(home, "Fridge", Vector3(5.0, 1.15, -0.6), Vector3(0.8, 2.0, 0.8), cream, false)
+	# Upstairs bedroom: bed, headboard, pillows and wardrobe.
+	_home_box(home, "BedFrame", Vector3(-3.6, 3.55, -1.2), Vector3(2.6, 0.42, 3.1), trim, false)
+	_home_box(home, "Mattress", Vector3(-3.6, 3.82, -1.2), Vector3(2.45, 0.18, 2.95), cream, false)
+	_home_box(home, "PillowA", Vector3(-4.15, 3.98, -2.25), Vector3(0.75, 0.16, 0.48), _home_material(Color(0.92, 0.92, 0.88)), false)
+	_home_box(home, "PillowB", Vector3(-3.1, 3.98, -2.25), Vector3(0.75, 0.16, 0.48), _home_material(Color(0.92, 0.92, 0.88)), false)
+	_home_box(home, "Wardrobe", Vector3(-5.0, 4.45, 2.2), Vector3(1.2, 2.4, 1.0), trim, false)
+	_home_box(home, "BalconyFloor", Vector3(0, 3.3, 5.9), Vector3(7.0, 0.18, 2.0), floor_mat, true)
+	_home_box(home, "BalconyRail", Vector3(0, 3.85, 6.8), Vector3(7.0, 0.9, 0.12), trim, true)
+	# Roof parapet and rooftop water tank with four legs and cylinder body.
+	_home_box(home, "RoofSlab", Vector3(0, 6.35, 0), Vector3(12.2, 0.22, 10.2), plaster, true)
+	_home_box(home, "RoofFrontParapet", Vector3(0, 6.85, 4.85), Vector3(12, 0.8, 0.2), plaster, true)
+	_home_box(home, "TankLeg1", Vector3(3.3, 7.0, -2.8), Vector3(0.16, 1.2, 0.16), trim, false)
+	_home_box(home, "TankLeg2", Vector3(4.7, 7.0, -2.8), Vector3(0.16, 1.2, 0.16), trim, false)
+	_home_box(home, "TankLeg3", Vector3(3.3, 7.0, -1.4), Vector3(0.16, 1.2, 0.16), trim, false)
+	_home_box(home, "TankLeg4", Vector3(4.7, 7.0, -1.4), Vector3(0.16, 1.2, 0.16), trim, false)
+	var tank := MeshInstance3D.new()
+	tank.name = "RooftopWaterTank"
+	var cylinder := CylinderMesh.new()
+	cylinder.top_radius = 0.72
+	cylinder.bottom_radius = 0.72
+	cylinder.height = 1.25
+	tank.mesh = cylinder
+	tank.position = Vector3(4.0, 7.65, -2.1)
+	tank.material_override = _home_material(Color(0.18, 0.42, 0.58))
+	home.add_child(tank)
+	# Five stylised residents, each with head, hair, clothing, arms and legs.
+	_home_person(home, "Father", Vector3(-1.0, 0.0, 1.6), Color(0.12, 0.28, 0.52), Color(0.24, 0.14, 0.09), true, false)
+	_home_person(home, "Mother", Vector3(1.2, 0.0, 1.3), Color(0.67, 0.16, 0.32), Color(0.12, 0.07, 0.04), false, true)
+	_home_person(home, "Grandfather", Vector3(-4.0, 3.3, 1.0), Color(0.58, 0.58, 0.55), Color(0.72, 0.72, 0.68), true, false)
+	_home_person(home, "Son", Vector3(1.2, 3.3, -2.8), Color(0.12, 0.48, 0.3), Color(0.12, 0.07, 0.04), false, false)
+	_home_person(home, "Daughter", Vector3(2.7, 3.3, -2.6), Color(0.78, 0.42, 0.16), Color(0.1, 0.06, 0.04), false, true)
+	# Signboard at the front yard.
+	_home_box(home, "HomeSignPost", Vector3(-7.0, 1.1, 5.5), Vector3(0.12, 2.2, 0.12), trim, false)
+	_home_box(home, "HomeSign", Vector3(-7.0, 2.0, 5.5), Vector3(2.4, 0.85, 0.12), blue, false)
+
+func _home_material(color: Color) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = 0.78
+	return material
+
+func _home_box(parent: Node3D, object_name: String, at: Vector3, size: Vector3, material: Material, collidable: bool) -> MeshInstance3D:
+	var body: Node3D = parent
+	var mesh_instance := MeshInstance3D.new()
+	mesh_instance.name = object_name
+	var box := BoxMesh.new()
+	box.size = size
+	mesh_instance.mesh = box
+	mesh_instance.position = at
+	mesh_instance.material_override = material
+	body.add_child(mesh_instance)
+	if collidable:
+		var static_body := StaticBody3D.new()
+		static_body.name = object_name + "Collision"
+		static_body.position = at
+		var shape_node := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = size
+		shape_node.shape = shape
+		static_body.add_child(shape_node)
+		parent.add_child(static_body)
+	return mesh_instance
+
+func _home_person(parent: Node3D, person_name: String, at: Vector3, shirt_color: Color, hair_color: Color, has_beard: bool, long_hair: bool) -> void:
+	var person := Node3D.new()
+	person.name = person_name
+	person.position = at
+	parent.add_child(person)
+	var skin := _home_material(Color(0.63, 0.43, 0.29))
+	var shirt := _home_material(shirt_color)
+	var trousers := _home_material(Color(0.12, 0.15, 0.2))
+	var hair := _home_material(hair_color)
+	_home_box(person, "Torso", Vector3(0, 1.12, 0), Vector3(0.55, 0.72, 0.32), shirt, false)
+	_home_box(person, "Head", Vector3(0, 1.78, 0), Vector3(0.38, 0.42, 0.36), skin, false)
+	_home_box(person, "Hair", Vector3(0, 2.0, -0.015), Vector3(0.4, 0.14, 0.39), hair, false)
+	_home_box(person, "LeftArm", Vector3(-0.37, 1.13, 0), Vector3(0.16, 0.64, 0.18), skin, false)
+	_home_box(person, "RightArm", Vector3(0.37, 1.13, 0), Vector3(0.16, 0.64, 0.18), skin, false)
+	_home_box(person, "LeftLeg", Vector3(-0.15, 0.48, 0), Vector3(0.18, 0.6, 0.22), trousers, false)
+	_home_box(person, "RightLeg", Vector3(0.15, 0.48, 0), Vector3(0.18, 0.6, 0.22), trousers, false)
+	if has_beard:
+		_home_box(person, "Beard", Vector3(0, 1.59, 0.19), Vector3(0.24, 0.16, 0.08), hair, false)
+	if long_hair:
+		_home_box(person, "LongHairBack", Vector3(0, 1.76, -0.19), Vector3(0.36, 0.45, 0.13), hair, false)
