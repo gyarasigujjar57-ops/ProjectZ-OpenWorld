@@ -60,6 +60,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build
+          echo "=== Android SDK validation ==="
+          ls -la "$ANDROID_HOME"
+          ls -la "$ANDROID_HOME/platform-tools/adb" "$ANDROID_HOME/build-tools/34.0.0/apksigner" "$ANDROID_HOME/build-tools/33.0.2/apksigner" || true
+          echo "=== Godot export preset validation ==="
           godot --headless --verbose --path . --export-debug "Android" build/ProjectZ-Android.apk
           test -s build/ProjectZ-Android.apk
 
