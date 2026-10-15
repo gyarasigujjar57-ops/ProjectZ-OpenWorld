@@ -370,11 +370,10 @@ func _make_home_compound() -> void:
 	tank.material_override = _home_material(Color(0.18, 0.42, 0.58))
 	home.add_child(tank)
 	# Five stylised residents, each with head, hair, clothing, arms and legs.
-	_home_person(home, "Father", Vector3(-1.0, 0.0, 1.6), Color(0.12, 0.28, 0.52), Color(0.24, 0.14, 0.09), true, false)
-	_home_person(home, "Mother", Vector3(1.2, 0.0, 1.3), Color(0.67, 0.16, 0.32), Color(0.12, 0.07, 0.04), false, true)
-	_home_person(home, "Grandfather", Vector3(-4.0, 3.3, 1.0), Color(0.58, 0.58, 0.55), Color(0.72, 0.72, 0.68), true, false)
-	_home_person(home, "Son", Vector3(1.2, 3.3, -2.8), Color(0.12, 0.48, 0.3), Color(0.12, 0.07, 0.04), false, false)
-	_home_person(home, "Daughter", Vector3(2.7, 3.3, -2.6), Color(0.78, 0.42, 0.16), Color(0.1, 0.06, 0.04), false, true)
+	_home_person(home, "MaleFriend_1", Vector3(-1.0, 0.0, 1.6), Color(0.12, 0.28, 0.52), Color(0.24, 0.14, 0.09), true, false)
+	_home_person(home, "FemaleFriend_1", Vector3(1.2, 0.0, 1.3), Color(0.67, 0.16, 0.32), Color(0.12, 0.07, 0.04), false, true)
+	_home_person(home, "MaleFriend_2", Vector3(-4.0, 3.3, 1.0), Color(0.12, 0.48, 0.3), Color(0.12, 0.07, 0.04), true, false)
+	_home_person(home, "FemaleFriend_2", Vector3(2.7, 3.3, -2.6), Color(0.78, 0.42, 0.16), Color(0.1, 0.06, 0.04), false, true)
 	# Signboard at the front yard.
 	_home_box(home, "HomeSignPost", Vector3(-7.0, 1.1, 5.5), Vector3(0.12, 2.2, 0.12), trim, false)
 	_home_box(home, "HomeSign", Vector3(-7.0, 2.0, 5.5), Vector3(2.4, 0.85, 0.12), blue, false)
@@ -485,7 +484,7 @@ func _make_home_ui() -> void:
 	var stack := VBoxContainer.new()
 	panel.add_child(stack)
 	var heading := Label.new()
-	heading.text = "HOME • FAMILY"
+	heading.text = "HOME • FRIENDS"
 	stack.add_child(heading)
 	home_status_label = Label.new()
 	stack.add_child(home_status_label)
