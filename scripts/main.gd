@@ -435,6 +435,7 @@ func _home_person(parent: Node3D, person_name: String, at: Vector3, shirt_color:
 var home_lights_on := true
 var home_power_bill := 0
 var home_water_bill := 0
+var home_bill_clock := 0.0
 var home_food_servings := 5
 var home_tea_cups := 0
 var home_cash := 1200
@@ -561,3 +562,13 @@ func _command_family() -> void:
 			member.set_meta("follow_player", not bool(member.get_meta("follow_player", false)))
 			following = bool(member.get_meta("follow_player", false))
 	_refresh_home_status("Family command: " + ("FOLLOW" if following else "STAY HOME"))
+
+
+func _process(delta: float) -> void:
+	# A short prototype household day makes utility bills accumulate during play.
+	home_bill_clock += delta
+	if home_bill_clock >= 120.0:
+		home_bill_clock = 0.0
+		home_power_bill += 80
+		home_water_bill += 40
+		_refresh_home_status("New household utility bill arrived")
