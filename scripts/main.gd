@@ -413,21 +413,78 @@ func _home_person(parent: Node3D, person_name: String, at: Vector3, shirt_color:
 	person.set_script(load("res://scripts/family_member.gd"))
 	person.add_to_group("family_members")
 	parent.add_child(person)
-	var skin := _home_material(Color(0.63, 0.43, 0.29))
+	var skin := _home_material(Color(0.64, 0.43, 0.30))
 	var shirt := _home_material(shirt_color)
-	var trousers := _home_material(Color(0.12, 0.15, 0.2))
+	var trousers := _home_material(Color(0.13, 0.15, 0.19))
 	var hair := _home_material(hair_color)
-	_home_box(person, "Torso", Vector3(0, 1.12, 0), Vector3(0.55, 0.72, 0.32), shirt, false)
-	_home_box(person, "Head", Vector3(0, 1.78, 0), Vector3(0.38, 0.42, 0.36), skin, false)
-	_home_box(person, "Hair", Vector3(0, 2.0, -0.015), Vector3(0.4, 0.14, 0.39), hair, false)
-	_home_box(person, "LeftArm", Vector3(-0.37, 1.13, 0), Vector3(0.16, 0.64, 0.18), skin, false)
-	_home_box(person, "RightArm", Vector3(0.37, 1.13, 0), Vector3(0.16, 0.64, 0.18), skin, false)
-	_home_box(person, "LeftLeg", Vector3(-0.15, 0.48, 0), Vector3(0.18, 0.6, 0.22), trousers, false)
-	_home_box(person, "RightLeg", Vector3(0.15, 0.48, 0), Vector3(0.18, 0.6, 0.22), trousers, false)
+	var white := _home_material(Color(0.96, 0.92, 0.83))
+	var dark := _home_material(Color(0.10, 0.07, 0.055))
+	# Rounded anatomy instead of a stack of square blocks; each resident has a distinct outfit.
+	var torso := MeshInstance3D.new()
+	torso.name = "ClothedTorso"
+	var torso_mesh := CapsuleMesh.new()
+	torso_mesh.radius = 0.29
+	torso_mesh.height = 0.82
+	torso.mesh = torso_mesh
+	torso.position = Vector3(0, 1.12, 0)
+	torso.material_override = shirt
+	person.add_child(torso)
+	var head := MeshInstance3D.new()
+	head.name = "Face"
+	var head_mesh := SphereMesh.new()
+	head_mesh.radius = 0.205
+	head_mesh.height = 0.43
+	head.mesh = head_mesh
+	head.position = Vector3(0, 1.79, 0.015)
+	head.material_override = skin
+	person.add_child(head)
+	_home_box(person, "HairCap", Vector3(0, 1.98, -0.015), Vector3(0.39, 0.13, 0.37), hair, false)
+	# Eyes and brows face the front (+Z), so residents have readable individual faces.
+	for eye_x in [-0.075, 0.075]:
+		_home_box(person, "Eye", Vector3(eye_x, 1.81, 0.205), Vector3(0.035, 0.028, 0.018), white, false)
+		_home_box(person, "Pupil", Vector3(eye_x, 1.81, 0.219), Vector3(0.014, 0.022, 0.009), dark, false)
 	if has_beard:
-		_home_box(person, "Beard", Vector3(0, 1.59, 0.19), Vector3(0.24, 0.16, 0.08), hair, false)
+		_home_box(person, "Beard", Vector3(0, 1.60, 0.17), Vector3(0.24, 0.17, 0.09), hair, false)
+		_home_box(person, "Mustache", Vector3(0, 1.68, 0.205), Vector3(0.16, 0.045, 0.035), hair, false)
 	if long_hair:
-		_home_box(person, "LongHairBack", Vector3(0, 1.76, -0.19), Vector3(0.36, 0.45, 0.13), hair, false)
+		_home_box(person, "LongHairBack", Vector3(0, 1.73, -0.17), Vector3(0.34, 0.45, 0.16), hair, false)
+		_home_box(person, "HairSideL", Vector3(-0.19, 1.77, 0.0), Vector3(0.07, 0.35, 0.20), hair, false)
+		_home_box(person, "HairSideR", Vector3(0.19, 1.77, 0.0), Vector3(0.07, 0.35, 0.20), hair, false)
+	# Arms with sleeves and skin hands.
+	for side in [-1.0, 1.0]:
+		var arm := MeshInstance3D.new()
+		arm.name = "Arm"
+		var arm_mesh := CapsuleMesh.new()
+		arm_mesh.radius = 0.075
+		arm_mesh.height = 0.55
+		arm.mesh = arm_mesh
+		arm.position = Vector3(side * 0.36, 1.08, 0)
+		arm.rotation.z = side * -0.10
+		arm.material_override = shirt
+		person.add_child(arm)
+		var hand := MeshInstance3D.new()
+		var hand_mesh := SphereMesh.new()
+		hand_mesh.radius = 0.075
+		hand.mesh = hand_mesh
+		hand.position = Vector3(side * 0.38, 0.77, 0.025)
+		hand.material_override = skin
+		person.add_child(hand)
+	# Two legs and shoes; girls get a longer colourful tunic overlay for a distinct silhouette.
+	for side in [-1.0, 1.0]:
+		var leg := MeshInstance3D.new()
+		leg.name = "Leg"
+		var leg_mesh := CapsuleMesh.new()
+		leg_mesh.radius = 0.085
+		leg_mesh.height = 0.55
+		leg.mesh = leg_mesh
+		leg.position = Vector3(side * 0.14, 0.42, 0)
+		leg.material_override = trousers
+		person.add_child(leg)
+		_home_box(person, "Shoe", Vector3(side * 0.14, 0.12, 0.055), Vector3(0.20, 0.13, 0.30), dark, false)
+	if long_hair:
+		_home_box(person, "DressOverlay", Vector3(0, 0.94, 0.015), Vector3(0.58, 0.58, 0.35), shirt, false)
+	else:
+		_home_box(person, "ShirtFront", Vector3(0, 1.15, 0.16), Vector3(0.18, 0.38, 0.025), _home_material(shirt_color.lightened(0.3)), false)
 
 
 # Household gameplay: working lights, hidden cellar, pantry, cooking and bills.
