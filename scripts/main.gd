@@ -411,6 +411,8 @@ func _home_person(parent: Node3D, person_name: String, at: Vector3, shirt_color:
 	var person := Node3D.new()
 	person.name = person_name
 	person.position = at
+	person.set_script(load("res://scripts/family_member.gd"))
+	person.add_to_group("family_members")
 	parent.add_child(person)
 	var skin := _home_material(Color(0.63, 0.43, 0.29))
 	var shirt := _home_material(shirt_color)
