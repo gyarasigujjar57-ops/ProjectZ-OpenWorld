@@ -16,6 +16,11 @@ var touch_sprint := false
 var current_vehicle: CharacterBody3D
 var health := 100
 var health_label: Label
+var hero_left_arm: MeshInstance3D
+var hero_right_arm: MeshInstance3D
+var hero_left_leg: MeshInstance3D
+var hero_right_leg: MeshInstance3D
+var hero_walk_clock := 0.0
 
 func _ready() -> void:
 	var shape := CapsuleShape3D.new()
@@ -25,16 +30,7 @@ func _ready() -> void:
 	collision.shape = shape
 	collision.position.y = 0.9
 	add_child(collision)
-	var mesh := MeshInstance3D.new()
-	var capsule := CapsuleMesh.new()
-	capsule.radius = 0.45
-	capsule.height = 1.8
-	mesh.mesh = capsule
-	mesh.position.y = 0.9
-	var body_mat := StandardMaterial3D.new()
-	body_mat.albedo_color = Color(0.12, 0.28, 0.52)
-	mesh.material_override = body_mat
-	add_child(mesh)
+	_create_hero_visual()
 	camera_pivot = Node3D.new()
 	camera_pivot.position.y = 1.5
 	add_child(camera_pivot)
@@ -208,6 +204,62 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("ui_accept") and is_on_floor():
 		velocity.y = jump_velocity
 	move_and_slide()
+	_animate_hero(delta)
+
+
+func _create_hero_visual() -> void:
+	var skin := _hero_material(Color(0.58, 0.37, 0.24))
+	var jacket := _hero_material(Color(0.055, 0.16, 0.30))
+	var pants := _hero_material(Color(0.10, 0.12, 0.16))
+	var hair := _hero_material(Color(0.07, 0.045, 0.03))
+	var boots := _hero_material(Color(0.08, 0.055, 0.035))
+	_add_hero_part("JacketTorso", Vector3(0, 1.12, 0), Vector3(0.58, 0.72, 0.34), jacket, true)
+	_add_hero_part("Head", Vector3(0, 1.78, 0), Vector3(0.39, 0.44, 0.37), skin, false)
+	_add_hero_part("Hair", Vector3(0, 2.0, -0.015), Vector3(0.41, 0.15, 0.39), hair, false)
+	_add_hero_part("Beard", Vector3(0, 1.58, 0.18), Vector3(0.27, 0.19, 0.10), hair, false)
+	_add_hero_part("ShirtFront", Vector3(0, 1.25, 0.176), Vector3(0.23, 0.44, 0.025), _hero_material(Color(0.78, 0.78, 0.70)), false)
+	hero_left_arm = _add_hero_part("LeftArm", Vector3(-0.38, 1.12, 0), Vector3(0.17, 0.66, 0.19), jacket, false)
+	hero_right_arm = _add_hero_part("RightArm", Vector3(0.38, 1.12, 0), Vector3(0.17, 0.66, 0.19), jacket, false)
+	hero_left_leg = _add_hero_part("LeftLeg", Vector3(-0.16, 0.48, 0), Vector3(0.21, 0.62, 0.24), pants, false)
+	hero_right_leg = _add_hero_part("RightLeg", Vector3(0.16, 0.48, 0), Vector3(0.21, 0.62, 0.24), pants, false)
+	_add_hero_part("LeftBoot", Vector3(-0.16, 0.16, 0.055), Vector3(0.23, 0.18, 0.34), boots, false)
+	_add_hero_part("RightBoot", Vector3(0.16, 0.16, 0.055), Vector3(0.23, 0.18, 0.34), boots, false)
+
+func _hero_material(color: Color) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = 0.72
+	return material
+
+func _add_hero_part(part_name: String, at: Vector3, size: Vector3, material: Material, capsule_shape: bool) -> MeshInstance3D:
+	var part := MeshInstance3D.new()
+	part.name = part_name
+	if capsule_shape:
+		var capsule := CapsuleMesh.new()
+		capsule.radius = 0.30
+		capsule.height = 0.78
+		part.mesh = capsule
+	else:
+		var box := BoxMesh.new()
+		box.size = size
+		part.mesh = box
+	part.position = at
+	part.material_override = material
+	add_child(part)
+	return part
+
+func _animate_hero(delta: float) -> void:
+	var moving := Vector2(velocity.x, velocity.z).length() > 0.6 and is_on_floor()
+	if moving:
+		hero_walk_clock += delta * (12.0 if touch_sprint or Input.is_key_pressed(KEY_SHIFT) else 8.0)
+	else:
+		hero_walk_clock = move_toward(hero_walk_clock, 0.0, delta * 5.0)
+	var swing := sin(hero_walk_clock) * (0.48 if moving else 0.04)
+	if hero_left_arm != null:
+		hero_left_arm.rotation.x = swing
+		hero_right_arm.rotation.x = -swing
+		hero_left_leg.rotation.x = -swing * 0.75
+		hero_right_leg.rotation.x = swing * 0.75
 
 
 func _shoot() -> void:
