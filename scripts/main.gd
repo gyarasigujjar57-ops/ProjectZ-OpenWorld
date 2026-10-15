@@ -13,6 +13,7 @@ func _ready() -> void:
 	_make_ground()
 	_make_regions()
 	_make_home_compound()
+	_make_home_systems()
 	_make_roads()
 	_make_targets()
 	_make_vehicle()
@@ -21,6 +22,7 @@ func _ready() -> void:
 	_make_service_locations()
 	_make_player()
 	_make_ui()
+	_make_home_ui()
 
 func _make_environment() -> void:
 	var env := WorldEnvironment.new()
@@ -425,3 +427,135 @@ func _home_person(parent: Node3D, person_name: String, at: Vector3, shirt_color:
 		_home_box(person, "Beard", Vector3(0, 1.59, 0.19), Vector3(0.24, 0.16, 0.08), hair, false)
 	if long_hair:
 		_home_box(person, "LongHairBack", Vector3(0, 1.76, -0.19), Vector3(0.36, 0.45, 0.13), hair, false)
+
+
+# Household gameplay: working lights, hidden cellar, pantry, cooking and bills.
+var home_lights_on := true
+var home_power_bill := 0
+var home_water_bill := 0
+var home_food_servings := 5
+var home_tea_cups := 0
+var home_cash := 1200
+var home_status_label: Label
+var home_light_nodes: Array[OmniLight3D] = []
+
+func _make_home_systems() -> void:
+	var home := get_node_or_null("WalkableFamilyHome")
+	if home == null:
+		return
+	var stone := _home_material(Color(0.40, 0.34, 0.27))
+	var wood := _home_material(Color(0.24, 0.16, 0.10))
+	# A concealed stair route descends behind the house into a below-ground ration cellar.
+	_home_box(home, "HiddenCellarHatch", Vector3(-4.4, 0.18, -5.65), Vector3(1.8, 0.12, 1.2), wood, true)
+	_home_box(home, "CellarFloor", Vector3(-3.0, -3.7, -8.8), Vector3(7.0, 0.22, 6.0), stone, true)
+	_home_box(home, "CellarBackWall", Vector3(-3.0, -2.0, -11.7), Vector3(7.0, 3.5, 0.2), stone, true)
+	_home_box(home, "CellarLeftWall", Vector3(-6.4, -2.0, -8.8), Vector3(0.2, 3.5, 6.0), stone, true)
+	_home_box(home, "CellarRightWall", Vector3(0.4, -2.0, -8.8), Vector3(0.2, 3.5, 6.0), stone, true)
+	for i in range(7):
+		_home_box(home, "CellarStep_%02d" % i, Vector3(-4.4, -0.12 - i * 0.48, -5.9 - i * 0.7), Vector3(1.5, 0.24, 0.78), wood, true)
+	_home_box(home, "CellarShelf", Vector3(-5.4, -2.8, -9.5), Vector3(0.25, 1.5, 3.0), wood, false)
+	for i in range(4):
+		_home_box(home, "RationSack_%d" % i, Vector3(-4.7 + float(i % 2) * 0.75, -3.1, -10.0 + float(i / 2) * 0.8), Vector3(0.48, 0.65, 0.45), _home_material(Color(0.67, 0.55, 0.32)), false)
+	for data in [[Vector3(-3.2, 2.5, 0.0), 5.5], [Vector3(3.6, 2.5, -2.0), 4.5], [Vector3(-3.2, 5.4, -1.0), 4.5], [Vector3(-3.0, -2.2, -8.5), 3.5]]:
+		var light := OmniLight3D.new()
+		light.name = "HouseLamp"
+		light.position = data[0]
+		light.light_color = Color(1.0, 0.78, 0.48)
+		light.light_energy = 1.25
+		light.omni_range = data[1]
+		home.add_child(light)
+		home_light_nodes.append(light)
+	_home_box(home, "ElectricMeter", Vector3(6.15, 1.2, 3.0), Vector3(0.25, 0.55, 0.42), _home_material(Color(0.18, 0.22, 0.24)), false)
+	_home_box(home, "WaterTapStand", Vector3(7.0, 0.55, -1.2), Vector3(0.2, 1.1, 0.2), _home_material(Color(0.42, 0.55, 0.61)), false)
+	_home_box(home, "WaterDrum", Vector3(7.0, 0.55, -2.0), Vector3(0.9, 1.1, 0.9), _home_material(Color(0.14, 0.36, 0.48)), false)
+
+func _make_home_ui() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "HouseholdControls"
+	layer.layer = 3
+	add_child(layer)
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	panel.position = Vector2(-220, 105)
+	panel.custom_minimum_size = Vector2(205, 310)
+	layer.add_child(panel)
+	var stack := VBoxContainer.new()
+	panel.add_child(stack)
+	var heading := Label.new()
+	heading.text = "HOME • FAMILY"
+	stack.add_child(heading)
+	home_status_label = Label.new()
+	stack.add_child(home_status_label)
+	_add_home_button(stack, "LIGHTS ON / OFF", _toggle_home_lights)
+	_add_home_button(stack, "COOK TEA", _cook_home_tea)
+	_add_home_button(stack, "MEAL / RATION", _eat_home_food)
+	_add_home_button(stack, "PAY ELECTRIC BILL", _pay_power_bill)
+	_add_home_button(stack, "PAY WATER BILL", _pay_water_bill)
+	_add_home_button(stack, "SECRET CELLAR", _toggle_cellar_hint)
+	_add_home_button(stack, "FAMILY FOLLOW / STAY", _command_family)
+	_refresh_home_status("Home systems ready")
+
+func _add_home_button(parent: VBoxContainer, caption: String, action: Callable) -> void:
+	var button := Button.new()
+	button.text = caption
+	button.custom_minimum_size = Vector2(180, 32)
+	button.pressed.connect(action)
+	parent.add_child(button)
+
+func _refresh_home_status(message: String = "") -> void:
+	if home_status_label != null:
+		home_status_label.text = "₹%d • Food %d • Tea %d\nPower ₹%d • Water ₹%d\n%s" % [home_cash, home_food_servings, home_tea_cups, home_power_bill, home_water_bill, message]
+
+func _toggle_home_lights() -> void:
+	home_lights_on = not home_lights_on
+	for light in home_light_nodes:
+		if is_instance_valid(light):
+			light.visible = home_lights_on
+	_refresh_home_status("Lights " + ("ON" if home_lights_on else "OFF"))
+
+func _cook_home_tea() -> void:
+	if home_food_servings <= 0:
+		_refresh_home_status("Pantry empty — buy ration first")
+		return
+	home_food_servings -= 1
+	home_tea_cups += 1
+	_refresh_home_status("Tea prepared • one ration used")
+
+func _eat_home_food() -> void:
+	if home_food_servings <= 0:
+		home_cash -= 100
+		home_food_servings += 5
+		_refresh_home_status("Bought five ration portions for ₹100")
+	else:
+		home_food_servings -= 1
+		_refresh_home_status("Meal served • food stock updated")
+
+func _pay_power_bill() -> void:
+	if home_cash < 80:
+		_refresh_home_status("Not enough cash for electric bill")
+		return
+	home_cash -= 80
+	home_power_bill = 0
+	_refresh_home_status("Electricity bill paid ₹80")
+
+func _pay_water_bill() -> void:
+	if home_cash < 40:
+		_refresh_home_status("Not enough cash for water bill")
+		return
+	home_cash -= 40
+	home_water_bill = 0
+	_refresh_home_status("Water bill paid ₹40")
+
+func _toggle_cellar_hint() -> void:
+	if is_instance_valid(player):
+		player.global_position = Vector3(-26.4, 0.8, 13.0)
+		player.velocity = Vector3.ZERO
+	_refresh_home_status("Hidden steps are behind the house")
+
+func _command_family() -> void:
+	var following := false
+	for member in get_tree().get_nodes_in_group("family_members"):
+		if is_instance_valid(member):
+			member.set_meta("follow_player", not bool(member.get_meta("follow_player", false)))
+			following = bool(member.get_meta("follow_player", false))
+	_refresh_home_status("Family command: " + ("FOLLOW" if following else "STAY HOME"))
