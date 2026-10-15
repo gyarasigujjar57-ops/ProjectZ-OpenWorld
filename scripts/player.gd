@@ -13,6 +13,8 @@ var touch_down := false
 var touch_left := false
 var touch_right := false
 var touch_sprint := false
+var joystick_active := false
+var is_crouching := false
 var current_vehicle: CharacterBody3D
 var health := 100
 var health_label: Label
@@ -77,78 +79,139 @@ func _create_mobile_controls() -> void:
 	layer.name = "TouchControls"
 	layer.layer = 5
 	add_child(layer)
-	var left_pad := Control.new()
-	left_pad.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	left_pad.position = Vector2(24, -190)
-	left_pad.size = Vector2(170, 150)
-	layer.add_child(left_pad)
-	var directions := [
-		{"text":"▲","pos":Vector2(58, 0),"vec":Vector2(0,-1)},
-		{"text":"▼","pos":Vector2(58, 94),"vec":Vector2(0,1)},
-		{"text":"◀","pos":Vector2(0,47),"vec":Vector2(-1,0)},
-		{"text":"▶","pos":Vector2(116,47),"vec":Vector2(1,0)}
-	]
-	for item in directions:
-		var button := Button.new()
-		button.text = item.text
-		button.position = item.pos
-		button.size = Vector2(52, 48)
-		button.focus_mode = Control.FOCUS_NONE
-		button.modulate = Color(1, 1, 1, 0.82)
-		left_pad.add_child(button)
-		button.button_down.connect(func(): _set_touch_direction(item.vec, true))
-		button.button_up.connect(func(): _set_touch_direction(item.vec, false))
-	var jump := Button.new()
-	jump.text = "JUMP"
-	jump.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	jump.position = Vector2(-112, -94)
-	jump.size = Vector2(96, 62)
-	jump.focus_mode = Control.FOCUS_NONE
-	jump.modulate = Color(1, 1, 1, 0.85)
-	layer.add_child(jump)
-	jump.button_down.connect(func(): _mobile_jump())
-	var enter := Button.new()
-	enter.text = "ENTER / EXIT"
-	enter.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	enter.position = Vector2(-224, -170)
-	enter.size = Vector2(108, 58)
-	enter.focus_mode = Control.FOCUS_NONE
-	layer.add_child(enter)
-	enter.button_down.connect(func(): _toggle_vehicle())
-	var interact := Button.new()
-	interact.text = "INTERACT"
-	interact.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	interact.position = Vector2(-220, -24)
-	interact.size = Vector2(108, 52)
-	interact.focus_mode = Control.FOCUS_NONE
-	layer.add_child(interact)
-	interact.button_down.connect(func(): _interact_location())
-	var fire := Button.new()
-	fire.text = "FIRE"
-	fire.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	fire.position = Vector2(-220, -94)
-	fire.size = Vector2(88, 62)
-	fire.focus_mode = Control.FOCUS_NONE
-	fire.modulate = Color(1.0, 0.72, 0.68, 0.9)
-	layer.add_child(fire)
-	fire.button_down.connect(func(): _shoot())
+	# Proper floating analogue joystick: drag the knob, don't tap four fake directions.
+	var pad := Control.new()
+	pad.name = "MovementJoystick"
+	pad.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	pad.position = Vector2(22, -210)
+	pad.size = Vector2(150, 150)
+	pad.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.add_child(pad)
+	var ring := Panel.new()
+	ring.position = Vector2(4, 4)
+	ring.size = Vector2(142, 142)
+	var ring_style := StyleBoxFlat.new()
+	ring_style.bg_color = Color(0.04, 0.07, 0.12, 0.48)
+	ring_style.border_color = Color(0.8, 0.9, 1.0, 0.72)
+	ring_style.set_border_width_all(2)
+	ring_style.set_corner_radius_all(72)
+	ring.add_theme_stylebox_override("panel", ring_style)
+	pad.add_child(ring)
+	var knob := Button.new()
+	knob.name = "JoystickKnob"
+	knob.position = Vector2(43, 43)
+	knob.size = Vector2(64, 64)
+	knob.text = ""
+	knob.focus_mode = Control.FOCUS_NONE
+	var knob_style := StyleBoxFlat.new()
+	knob_style.bg_color = Color(0.72, 0.84, 0.98, 0.82)
+	knob_style.border_color = Color(1, 1, 1, 0.95)
+	knob_style.set_border_width_all(2)
+	knob_style.set_corner_radius_all(32)
+	knob.add_theme_stylebox_override("normal", knob_style)
+	knob.add_theme_stylebox_override("pressed", knob_style)
+	knob.add_theme_stylebox_override("hover", knob_style)
+	pad.add_child(knob)
+	pad.gui_input.connect(func(event: InputEvent):
+		if event is InputEventScreenTouch:
+			if event.pressed:
+				joystick_active = true
+				_update_joystick(event.position, knob)
+			else:
+				joystick_active = false
+				touch_move = Vector2.ZERO
+				knob.position = Vector2(43, 43)
+		elif event is InputEventScreenDrag and joystick_active:
+			_update_joystick(event.position, knob)
+		elif event is InputEventMouseButton:
+			if event.pressed:
+				joystick_active = true
+				_update_joystick(event.position, knob)
+			else:
+				joystick_active = false
+				touch_move = Vector2.ZERO
+				knob.position = Vector2(43, 43)
+		elif event is InputEventMouseMotion and joystick_active:
+			_update_joystick(event.position, knob)
+	)
+	_add_action_button(layer, "JUMP", Vector2(-112, -94), Vector2(96, 62), _mobile_jump)
+	_add_action_button(layer, "ENTER / EXIT", Vector2(-224, -170), Vector2(108, 58), _toggle_vehicle)
+	_add_action_button(layer, "INTERACT", Vector2(-220, -24), Vector2(108, 52), _interact_location)
+	_add_action_button(layer, "FIRE", Vector2(-220, -94), Vector2(88, 62), _shoot)
+	_add_action_button(layer, "BAG", Vector2(-320, -170), Vector2(86, 58), _open_inventory)
+	_add_action_button(layer, "CROUCH", Vector2(-320, -100), Vector2(86, 58), _toggle_crouch)
 	var sprint := Button.new()
 	sprint.text = "RUN"
 	sprint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	sprint.position = Vector2(-112, -166)
 	sprint.size = Vector2(96, 58)
 	sprint.focus_mode = Control.FOCUS_NONE
-	sprint.modulate = Color(1, 1, 1, 0.85)
 	layer.add_child(sprint)
 	sprint.button_down.connect(func(): touch_sprint = true)
 	sprint.button_up.connect(func(): touch_sprint = false)
 	var hint := Label.new()
-	hint.text = "Drag on right side to look around"
+	hint.text = "MOVE: drag joystick  •  LOOK: drag right side"
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	hint.position = Vector2(-300, -35)
-	hint.size = Vector2(270, 28)
+	hint.position = Vector2(-360, -35)
+	hint.size = Vector2(350, 28)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	layer.add_child(hint)
+
+func _update_joystick(local_pos: Vector2, knob: Button) -> void:
+	var delta := local_pos - Vector2(75, 75)
+	var limited := delta.limit_length(42.0)
+	knob.position = Vector2(75, 75) + limited - knob.size / 2.0
+	touch_move = Vector2(limited.x / 42.0, limited.y / 42.0).limit_length(1.0)
+
+func _add_action_button(layer: CanvasLayer, caption: String, offset: Vector2, button_size: Vector2, action: Callable) -> void:
+	var button := Button.new()
+	button.text = caption
+	button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	button.position = offset
+	button.size = button_size
+	button.focus_mode = Control.FOCUS_NONE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.08, 0.12, 0.68)
+	style.border_color = Color(0.78, 0.88, 1.0, 0.8)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(14)
+	button.add_theme_stylebox_override("normal", style)
+	button.add_theme_stylebox_override("pressed", style)
+	layer.add_child(button)
+	button.pressed.connect(action)
+
+func _toggle_crouch() -> void:
+	is_crouching = not is_crouching
+	scale.y = 0.68 if is_crouching else 1.0
+
+func _open_inventory() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "InventoryOverlay"
+	layer.layer = 20
+	add_child(layer)
+	var shade := ColorRect.new()
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.01, 0.025, 0.05, 0.88)
+	layer.add_child(shade)
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.position = Vector2(-190, -150)
+	panel.size = Vector2(380, 300)
+	shade.add_child(panel)
+	var stack := VBoxContainer.new()
+	panel.add_child(stack)
+	var title := Label.new()
+	title.text = "BACKPACK / INVENTORY"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stack.add_child(title)
+	for item_text in ["Med Kit  × 3", "Water Bottle  × 2", "Ration Pack  × 5", "Ammo  × 60", "Cash  ₹%d" % int(get_tree().current_scene.get("home_cash"))]:
+		var item := Label.new()
+		item.text = item_text
+		stack.add_child(item)
+	var close := Button.new()
+	close.text = "CLOSE"
+	close.pressed.connect(func(): layer.queue_free())
+	stack.add_child(close)
 
 func _set_touch_direction(direction: Vector2, pressed: bool) -> void:
 	if direction.y < -0.5:
