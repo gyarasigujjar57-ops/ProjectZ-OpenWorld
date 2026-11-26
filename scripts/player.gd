@@ -18,10 +18,10 @@ var is_crouching := false
 var current_vehicle: CharacterBody3D
 var health := 100
 var health_label: Label
-var hero_left_arm: MeshInstance3D
-var hero_right_arm: MeshInstance3D
-var hero_left_leg: MeshInstance3D
-var hero_right_leg: MeshInstance3D
+var hero_left_arm: Node3D
+var hero_right_arm: Node3D
+var hero_left_leg: Node3D
+var hero_right_leg: Node3D
 var hero_walk_clock := 0.0
 
 func _ready() -> void:
@@ -271,41 +271,133 @@ func _physics_process(delta: float) -> void:
 
 
 func _create_hero_visual() -> void:
-	var skin := _hero_material(Color(0.58, 0.37, 0.24))
-	var jacket := _hero_material(Color(0.055, 0.16, 0.30))
-	var pants := _hero_material(Color(0.10, 0.12, 0.16))
-	var hair := _hero_material(Color(0.07, 0.045, 0.03))
-	var boots := _hero_material(Color(0.08, 0.055, 0.035))
-	_add_hero_part("JacketTorso", Vector3(0, 1.12, 0), Vector3(0.58, 0.72, 0.34), jacket, true)
-	_add_hero_part("Head", Vector3(0, 1.78, 0), Vector3(0.39, 0.44, 0.37), skin, false)
-	_add_hero_part("Hair", Vector3(0, 2.0, -0.015), Vector3(0.41, 0.15, 0.39), hair, false)
-	_add_hero_part("Beard", Vector3(0, 1.58, 0.18), Vector3(0.27, 0.19, 0.10), hair, false)
-	_add_hero_part("ShirtFront", Vector3(0, 1.25, 0.176), Vector3(0.23, 0.44, 0.025), _hero_material(Color(0.78, 0.78, 0.70)), false)
-	hero_left_arm = _add_hero_part("LeftArm", Vector3(-0.38, 1.12, 0), Vector3(0.17, 0.66, 0.19), jacket, false)
-	hero_right_arm = _add_hero_part("RightArm", Vector3(0.38, 1.12, 0), Vector3(0.17, 0.66, 0.19), jacket, false)
-	hero_left_leg = _add_hero_part("LeftLeg", Vector3(-0.16, 0.48, 0), Vector3(0.21, 0.62, 0.24), pants, false)
-	hero_right_leg = _add_hero_part("RightLeg", Vector3(0.16, 0.48, 0), Vector3(0.21, 0.62, 0.24), pants, false)
-	_add_hero_part("LeftBoot", Vector3(-0.16, 0.16, 0.055), Vector3(0.23, 0.18, 0.34), boots, false)
-	_add_hero_part("RightBoot", Vector3(0.16, 0.16, 0.055), Vector3(0.23, 0.18, 0.34), boots, false)
+	# BHARAT LIFE hero: white tricolour shirt, black cargo trousers, high-top sneakers.
+	# This is a detailed procedural 3D placeholder; a photo-matched sculpted model can replace it later.
+	var skin := _hero_material(Color(0.66, 0.43, 0.30))
+	var shirt := _hero_material(Color(0.92, 0.92, 0.88))
+	var pants := _hero_material(Color(0.055, 0.060, 0.075))
+	var hair := _hero_material(Color(0.035, 0.025, 0.022))
+	var shoe_white := _hero_material(Color(0.92, 0.93, 0.94))
+	var shoe_black := _hero_material(Color(0.08, 0.09, 0.12))
+	var metal := _hero_material(Color(0.62, 0.66, 0.72))
+	var saffron := _hero_material(Color(0.98, 0.39, 0.08))
+	var green := _hero_material(Color(0.08, 0.52, 0.25))
+	var navy := _hero_material(Color(0.04, 0.12, 0.32))
+
+	# Torso and fitted white shirt.
+	_add_hero_ellipsoid("ShirtTorso", Vector3(0, 1.18, 0), Vector3(0.34, 0.43, 0.20), shirt)
+	_add_hero_part("ShirtCollarL", Vector3(-0.105, 1.49, 0.105), Vector3(0.12, 0.12, 0.035), shirt, false)
+	_add_hero_part("ShirtCollarR", Vector3(0.105, 1.49, 0.105), Vector3(0.12, 0.12, 0.035), shirt, false)
+	_add_hero_part("ShirtPlacket", Vector3(0, 1.20, 0.204), Vector3(0.025, 0.48, 0.018), _hero_material(Color(0.78,0.78,0.75)), false)
+	for i in range(5):
+		_add_hero_ellipsoid("ShirtButton%d" % i, Vector3(0, 1.39 - i * 0.085, 0.218), Vector3(0.012,0.012,0.008), metal)
+	# Tricolour chest graphic and navy wheel.
+	_add_hero_part("FlagSaffron", Vector3(0.13, 1.31, 0.211), Vector3(0.29, 0.055, 0.012), saffron, false).rotation.z = deg_to_rad(-16)
+	_add_hero_part("FlagWhite", Vector3(0.13, 1.245, 0.214), Vector3(0.29, 0.055, 0.012), shirt, false).rotation.z = deg_to_rad(-16)
+	_add_hero_part("FlagGreen", Vector3(0.13, 1.18, 0.211), Vector3(0.29, 0.055, 0.012), green, false).rotation.z = deg_to_rad(-16)
+	_add_hero_ellipsoid("FlagChakra", Vector3(0.13, 1.245, 0.225), Vector3(0.055,0.055,0.012), navy)
+
+	# Neck, head, ears and readable facial features.
+	_add_hero_ellipsoid("Neck", Vector3(0, 1.57, 0), Vector3(0.105,0.16,0.105), skin)
+	_add_hero_ellipsoid("Face", Vector3(0, 1.79, 0.015), Vector3(0.205,0.265,0.17), skin)
+	_add_hero_ellipsoid("EarL", Vector3(-0.205,1.79,0.015), Vector3(0.045,0.075,0.045), skin)
+	_add_hero_ellipsoid("EarR", Vector3(0.205,1.79,0.015), Vector3(0.045,0.075,0.045), skin)
+	var dark := _hero_material(Color(0.035,0.025,0.02))
+	var eye_white := _hero_material(Color(0.96,0.94,0.90))
+	var iris := _hero_material(Color(0.20,0.10,0.045))
+	for side in [-1.0, 1.0]:
+		_add_hero_ellipsoid("EyeWhite", Vector3(side*0.078,1.835,0.169), Vector3(0.043,0.025,0.018), eye_white)
+		_add_hero_ellipsoid("Iris", Vector3(side*0.078,1.835,0.187), Vector3(0.018,0.019,0.009), iris)
+		_add_hero_part("Eyebrow", Vector3(side*0.078,1.885,0.17), Vector3(0.09,0.018,0.018), dark, false).rotation.z = side * deg_to_rad(-5)
+	_add_hero_ellipsoid("Nose", Vector3(0,1.775,0.19), Vector3(0.035,0.075,0.035), skin)
+	_add_hero_part("UpperLip", Vector3(0,1.70,0.176), Vector3(0.075,0.014,0.012), _hero_material(Color(0.40,0.17,0.14)), false)
+	_add_hero_part("LowerLip", Vector3(0,1.685,0.175), Vector3(0.06,0.012,0.012), _hero_material(Color(0.55,0.25,0.22)), false)
+
+	# Thick wavy dark hairstyle: crown, swept fringe and separate locks.
+	var hair_root := Node3D.new()
+	hair_root.name = "AnimatedHair"
+	hair_root.position = Vector3(0,1.98,-0.005)
+	add_child(hair_root)
+	_add_hero_ellipsoid_to(hair_root,"HairCrown",Vector3(0,0,0),Vector3(0.225,0.15,0.205),hair)
+	for i in range(9):
+		var x := -0.18 + float(i)*0.045
+		var lock := _hero_ellipsoid_to(hair_root,"WaveLock%d" % i,Vector3(x,0.07,0.11),Vector3(0.055,0.105,0.07),hair)
+		lock.rotation.z = deg_to_rad(float(i-4)*7.0)
+	_add_hero_ellipsoid_to(hair_root,"BackHair",Vector3(0,-0.08,-0.09),Vector3(0.20,0.15,0.13),hair)
+	# Side-swept fringe above forehead.
+	for i in range(5):
+		var fringe := _hero_ellipsoid_to(hair_root,"Fringe%d" % i,Vector3(-0.12 + i*0.055,-0.035,0.16),Vector3(0.07,0.055,0.06),hair)
+		fringe.rotation.z = deg_to_rad(-18.0 + i*8.0)
+
+	# Arms with shoulder pivots so the walk cycle bends at the shoulder.
+	var left_arm := _make_limb_pivot("LeftArmPivot",Vector3(-0.37,1.43,0))
+	var right_arm := _make_limb_pivot("RightArmPivot",Vector3(0.37,1.43,0))
+	hero_left_arm = left_arm
+	hero_right_arm = right_arm
+	_add_hero_ellipsoid_to(left_arm,"UpperArm",Vector3(0,-0.19,0),Vector3(0.105,0.23,0.105),shirt)
+	_add_hero_ellipsoid_to(left_arm,"Forearm",Vector3(0,-0.43,0.015),Vector3(0.085,0.22,0.085),skin)
+	_add_hero_ellipsoid_to(left_arm,"Hand",Vector3(0,-0.64,0.025),Vector3(0.075,0.095,0.055),skin)
+	_add_hero_ellipsoid_to(right_arm,"UpperArm",Vector3(0,-0.19,0),Vector3(0.105,0.23,0.105),shirt)
+	_add_hero_ellipsoid_to(right_arm,"Forearm",Vector3(0,-0.43,0.015),Vector3(0.085,0.22,0.085),skin)
+	_add_hero_ellipsoid_to(right_arm,"Hand",Vector3(0,-0.64,0.025),Vector3(0.075,0.095,0.055),skin)
+	# Watch, red/black wrist bands and chain with pendant.
+	_add_hero_ellipsoid_to(left_arm,"WatchBand",Vector3(0,-0.49,0.01),Vector3(0.095,0.035,0.09),shoe_black)
+	_add_hero_ellipsoid_to(left_arm,"WatchFace",Vector3(0,-0.49,0.09),Vector3(0.045,0.045,0.015),metal)
+	for j in range(3):
+		_add_hero_ellipsoid_to(right_arm,"WristBand%d" % j,Vector3(0,-0.50+j*0.025,0.015),Vector3(0.09,0.012,0.09),saffron if j==1 else shoe_black)
+	_add_hero_part("NeckChain",Vector3(0,1.48,0.145),Vector3(0.16,0.012,0.012),metal,false)
+	_add_hero_ellipsoid("Pendant",Vector3(0,1.39,0.16),Vector3(0.035,0.05,0.018),shoe_black)
+
+	# Cargo trousers, articulated legs, pockets and white high-top sneakers.
+	_add_hero_ellipsoid("PantsWaist",Vector3(0,0.82,0),Vector3(0.30,0.16,0.19),pants)
+	var left_leg := _make_limb_pivot("LeftLegPivot",Vector3(-0.15,0.78,0))
+	var right_leg := _make_limb_pivot("RightLegPivot",Vector3(0.15,0.78,0))
+	hero_left_leg = left_leg
+	hero_right_leg = right_leg
+	for limb in [left_leg,right_leg]:
+		_add_hero_ellipsoid_to(limb,"CargoThigh",Vector3(0,-0.22,0),Vector3(0.14,0.29,0.16),pants)
+		_add_hero_ellipsoid_to(limb,"CargoShin",Vector3(0,-0.53,0),Vector3(0.115,0.25,0.13),pants)
+		_add_hero_ellipsoid_to(limb,"CargoPocket",Vector3(0,-0.28,0.14),Vector3(0.12,0.12,0.035),shoe_black)
+		_add_hero_ellipsoid_to(limb,"CargoFlap",Vector3(0,-0.20,0.17),Vector3(0.13,0.035,0.025),pants)
+		_add_hero_ellipsoid_to(limb,"HighTopShoe",Vector3(0,-0.79,0.07),Vector3(0.14,0.105,0.23),shoe_white)
+		_add_hero_ellipsoid_to(limb,"ShoeToe",Vector3(0,-0.82,0.15),Vector3(0.135,0.07,0.13),shoe_white)
+		_add_hero_ellipsoid_to(limb,"ShoeSole",Vector3(0,-0.875,0.075),Vector3(0.15,0.025,0.23),shoe_black)
+
+func _make_limb_pivot(node_name: String, at: Vector3) -> Node3D:
+	var pivot := Node3D.new()
+	pivot.name = node_name
+	pivot.position = at
+	add_child(pivot)
+	return pivot
+
+func _add_hero_ellipsoid(part_name: String, at: Vector3, dimensions: Vector3, material: Material) -> MeshInstance3D:
+	return _add_hero_ellipsoid_to(self,part_name,at,dimensions,material)
+
+func _add_hero_ellipsoid_to(parent: Node3D, part_name: String, at: Vector3, dimensions: Vector3, material: Material) -> MeshInstance3D:
+	var part := MeshInstance3D.new()
+	part.name = part_name
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.5
+	mesh.height = 1.0
+	part.mesh = mesh
+	part.position = at
+	part.scale = dimensions
+	part.material_override = material
+	parent.add_child(part)
+	return part
 
 func _hero_material(color: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
-	material.roughness = 0.72
+	material.roughness = 0.62
 	return material
 
 func _add_hero_part(part_name: String, at: Vector3, size: Vector3, material: Material, capsule_shape: bool) -> MeshInstance3D:
 	var part := MeshInstance3D.new()
 	part.name = part_name
-	if capsule_shape:
-		var capsule := CapsuleMesh.new()
-		capsule.radius = 0.30
-		capsule.height = 0.78
-		part.mesh = capsule
-	else:
-		var box := BoxMesh.new()
-		box.size = size
-		part.mesh = box
+	var box := BoxMesh.new()
+	box.size = size
+	part.mesh = box
 	part.position = at
 	part.material_override = material
 	add_child(part)
@@ -317,12 +409,17 @@ func _animate_hero(delta: float) -> void:
 		hero_walk_clock += delta * (12.0 if touch_sprint or Input.is_key_pressed(KEY_SHIFT) else 8.0)
 	else:
 		hero_walk_clock = move_toward(hero_walk_clock, 0.0, delta * 5.0)
-	var swing := sin(hero_walk_clock) * (0.48 if moving else 0.04)
+	var swing := sin(hero_walk_clock) * (0.48 if moving else 0.025)
 	if hero_left_arm != null:
 		hero_left_arm.rotation.x = swing
 		hero_right_arm.rotation.x = -swing
 		hero_left_leg.rotation.x = -swing * 0.75
 		hero_right_leg.rotation.x = swing * 0.75
+	# Light secondary motion for the hairstyle; deliberately subtle for mobile performance.
+	var hair_node := get_node_or_null("AnimatedHair")
+	if hair_node != null:
+		hair_node.rotation.z = lerp_angle(hair_node.rotation.z, -velocity.x * 0.008, delta * 5.0)
+		hair_node.rotation.x = lerp_angle(hair_node.rotation.x, velocity.z * 0.006, delta * 5.0)
 
 
 func _shoot() -> void:
