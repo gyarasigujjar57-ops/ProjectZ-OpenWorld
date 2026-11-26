@@ -20,7 +20,7 @@ func begin_floating_touch(id: int, screen_pos: Vector2) -> void:
 	finger_id = id
 	active = true
 	using_floating = true
-	floating_center = screen_pos
+	floating_center = to_local(screen_pos)
 	queue_redraw()
 	_update_knob(screen_pos)
 
@@ -33,7 +33,7 @@ func end_floating_touch(id: int) -> void:
 		_reset()
 
 func _update_knob(screen_pos: Vector2) -> void:
-	var d := (screen_pos - floating_center).limit_length(radius)
+	var d := (to_local(screen_pos) - floating_center).limit_length(radius)
 	knob = d / radius
 	if knob.length() < deadzone:
 		knob = Vector2.ZERO
