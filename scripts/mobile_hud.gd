@@ -37,38 +37,41 @@ func _build_hud() -> void:
 
 	var joystick := Control.new()
 	joystick.set_script(JoystickScript)
-	joystick.position = Vector2(24, 500)
-	joystick.size = Vector2(190, 190)
+	joystick.anchor_top = 1.0
+	joystick.anchor_bottom = 1.0
+	joystick.offset_left = 24
+	joystick.offset_top = -190
+	joystick.offset_right = 194
+	joystick.offset_bottom = -20
 	root.add_child(joystick)
 	joystick.vector_changed.connect(func(v): move_vector_changed.emit(v))
 
 	var top := Label.new()
-	top.text = "PROJECT Z  •  THIRD PERSON TEST"
-	top.position = Vector2(22, 18)
-	top.add_theme_font_size_override("font_size", 22)
+	top.text = "PROJECT Z  •  OPEN WORLD"
+	top.position = Vector2(20, 14)
+	top.add_theme_font_size_override("font_size", 20)
 	top.add_theme_color_override("font_color", Color.WHITE)
 	root.add_child(top)
 
 	status_label = Label.new()
 	status_label.text = "LOADING CHARACTER..."
-	status_label.position = Vector2(22, 52)
-	status_label.add_theme_font_size_override("font_size", 17)
+	status_label.position = Vector2(20, 43)
+	status_label.add_theme_font_size_override("font_size", 14)
 	status_label.add_theme_color_override("font_color", Color.WHITE)
 	root.add_child(status_label)
 
 	var selector := Button.new()
-	selector.text = "CHANGE CHARACTER ▼"
-	selector.position = Vector2(22, 91)
-	selector.custom_minimum_size = Vector2(220, 48)
+	selector.text = "CHARACTER  ▼"
+	selector.position = Vector2(20, 72)
+	selector.custom_minimum_size = Vector2(150, 36)
 	selector.pressed.connect(_toggle_selector)
 	root.add_child(selector)
 
 	selector_panel = PanelContainer.new()
-	selector_panel.position = Vector2(22, 145)
-	selector_panel.custom_minimum_size = Vector2(250, 0)
+	selector_panel.position = Vector2(20, 112)
+	selector_panel.custom_minimum_size = Vector2(210, 0)
 	selector_panel.visible = false
 	root.add_child(selector_panel)
-
 	var cards := VBoxContainer.new()
 	selector_panel.add_child(cards)
 	_add_character_card(cards, 1, "TEEN CHARACTER")
@@ -76,29 +79,39 @@ func _build_hud() -> void:
 
 	var grid := GridContainer.new()
 	grid.columns = 2
-	grid.position = Vector2(1010, 300)
-	grid.size = Vector2(245, 370)
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 8)
+	grid.anchor_left = 1.0
+	grid.anchor_top = 1.0
+	grid.anchor_right = 1.0
+	grid.anchor_bottom = 1.0
+	grid.offset_left = -230
+	grid.offset_top = -215
+	grid.offset_right = -12
+	grid.offset_bottom = -12
+	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("v_separation", 6)
 	root.add_child(grid)
 
-	_add_button(grid, "RUN", "sprint", true)
+	_add_button(grid, "SPRINT", "sprint", true)
 	_add_button(grid, "CROUCH", "crouch", true)
 	_add_button(grid, "AIM", "aim", true)
 	_add_button(grid, "JUMP", "jump", false)
 	_add_button(grid, "PRONE", "prone", true)
 	_add_button(grid, "SIT", "sit", true)
-	_add_button(grid, "DRIVE", "drive", true)
-	_add_button(grid, "BAG", "bag", false)
-	_add_button(grid, "MEDKIT", "medkit", false)
-	_add_button(grid, "GRENADE", "grenade", false)
-	_add_button(grid, "SCOPE", "scope", true)
-	_add_button(grid, "INTERACT", "interact", false)
+	_add_button(grid, "ZOOM +", "zoom_in", false)
+	_add_button(grid, "ZOOM −", "zoom_out", false)
 
 	var hint := Label.new()
-	hint.text = "LEFT: MOVE   •   CENTER: DRAG CAMERA   •   RIGHT: ACTIONS"
-	hint.position = Vector2(365, 680)
-	hint.add_theme_font_size_override("font_size", 15)
+	hint.text = "LEFT: MOVE     RIGHT: DRAG CAMERA"
+	hint.anchor_left = 0.5
+	hint.anchor_top = 1.0
+	hint.anchor_right = 0.5
+	hint.anchor_bottom = 1.0
+	hint.offset_left = -145
+	hint.offset_top = -24
+	hint.offset_right = 145
+	hint.offset_bottom = -4
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", 12)
 	hint.add_theme_color_override("font_color", Color.WHITE)
 	root.add_child(hint)
 
@@ -118,8 +131,8 @@ func _toggle_selector() -> void:
 func _add_button(parent: GridContainer, caption: String, action: String, toggled: bool) -> void:
 	var button := Button.new()
 	button.text = caption
-	button.custom_minimum_size = Vector2(116, 58)
-	button.add_theme_font_size_override("font_size", 16)
+	button.custom_minimum_size = Vector2(106, 46)
+	button.add_theme_font_size_override("font_size", 14)
 	button.add_theme_color_override("font_color", Color.WHITE)
 	button.toggle_mode = toggled
 	if toggled:
