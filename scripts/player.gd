@@ -111,8 +111,8 @@ func handle_action(action: String, pressed: bool = true) -> void:
 	match action:
 		"sprint": sprinting = pressed
 		"crouch":
+			crouching = pressed
 			if pressed:
-				crouching = not crouching
 				sitting = false
 				prone = false
 		"aim": aiming = pressed
@@ -131,13 +131,13 @@ func handle_action(action: String, pressed: bool = true) -> void:
 		"interact":
 			if pressed: print("Interact action requested")
 		"sit":
+			sitting = pressed
 			if pressed:
-				sitting = not sitting
 				crouching = false
 				prone = false
 		"prone":
+			prone = pressed
 			if pressed:
-				prone = not prone
 				crouching = false
 				sitting = false
 	_emit_status()
