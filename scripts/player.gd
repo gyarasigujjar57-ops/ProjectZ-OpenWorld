@@ -16,7 +16,7 @@ var sitting := false
 var prone := false
 var posture_height := 1.78
 var landing_blend := 0.0
-var camera_distance := 5.0
+var camera_distance := 2.9
 var secondary_bones: Array[int] = []
 var secondary_phase := 0.0
 var aiming := false
@@ -37,7 +37,7 @@ var crouch_speed := 1.7
 var gravity := 22.0
 var jump_velocity := 7.1
 var camera_yaw := 0.0
-var camera_pitch := -12.0
+var camera_pitch := -7.0
 var pose_time := 0.0
 var is_jumping := false
 var was_on_floor := true
@@ -65,10 +65,10 @@ func _build_camera() -> void:
 	add_child(camera_pivot)
 
 	camera = Camera3D.new()
-	camera.position = Vector3(0.55, 1.25, camera_distance)
+	camera.position = Vector3(0.38, 0.55, camera_distance)
 	camera.rotation_degrees.x = camera_pitch
 	camera.current = true
-	camera.fov = 72.0
+	camera.fov = 66.0
 	camera_pivot.add_child(camera)
 
 func switch_character(index: int) -> void:
@@ -107,8 +107,8 @@ func set_move_vector(value: Vector2) -> void:
 	move_vector = value
 
 func rotate_camera(delta_pixels: Vector2) -> void:
-	camera_yaw -= delta_pixels.x * 0.0045
-	camera_pitch = clampf(camera_pitch - delta_pixels.y * 0.20, -38.0, 24.0)
+	camera_yaw -= delta_pixels.x * 0.0032
+	camera_pitch = clampf(camera_pitch - delta_pixels.y * 0.14, -32.0, 18.0)
 	camera_pivot.rotation.y = camera_yaw
 	camera.rotation_degrees.x = camera_pitch
 
@@ -122,7 +122,13 @@ func handle_action(action: String, pressed: bool = true) -> void:
 				prone = false
 		"aim": aiming = pressed
 		"drive": driving_mode = pressed
-		"scope": scope_zoom = pressed
+		"scope":
+			scope_zoom = pressed
+			camera_distance = 1.25 if pressed else 2.9
+		"zoom_in":
+			if pressed: camera_distance = maxf(1.0, camera_distance - 0.35)
+		"zoom_out":
+			if pressed: camera_distance = minf(5.0, camera_distance + 0.35)
 		"jump":
 			if pressed and is_on_floor() and not crouching and not sitting and not prone:
 				velocity.y = jump_velocity
@@ -315,7 +321,9 @@ func _set_bone_rot(bone_name: String, euler: Vector3) -> void:
 
 
 func _update_camera(delta: float) -> void:
-	var desired := 5.0
+	var desired := 2.9
+	if aiming: desired = 1.9
+	if scope_zoom: desired = 1.15
 	var origin := camera_pivot.global_position
 	var endpoint := origin - camera_pivot.global_basis.z * desired
 	var query := PhysicsRayQueryParameters3D.create(origin, endpoint)
