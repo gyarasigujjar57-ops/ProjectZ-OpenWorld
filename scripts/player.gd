@@ -16,7 +16,7 @@ var sitting := false
 var prone := false
 var posture_height := 1.78
 var landing_blend := 0.0
-var camera_distance := 2.9
+var camera_distance := 3.35
 var secondary_bones: Array[int] = []
 var secondary_phase := 0.0
 var aiming := false
@@ -66,7 +66,7 @@ func _build_camera() -> void:
 	add_child(camera_pivot)
 
 	camera = Camera3D.new()
-	camera.position = Vector3(0.38, 0.55, camera_distance)
+	camera.position = Vector3(0.28, 0.48, camera_distance)
 	camera.rotation_degrees.x = camera_pitch
 	camera.current = true
 	camera.fov = 66.0
@@ -89,12 +89,32 @@ func switch_character(index: int) -> void:
 	avatar = packed.instantiate()
 	avatar.name = CHARACTER_NAMES[index]
 	add_child(avatar)
+	_fit_avatar_height(avatar, 1.72)
 	animation_player = _find_animation_player(avatar)
 	skeleton = _find_skeleton(avatar)
 	_cache_secondary_bones()
 	active_character = index
 	_apply_procedural_pose("idle", 0.0)
 	_emit_status()
+
+func _fit_avatar_height(root: Node3D, target_height: float) -> void:
+	var meshes := root.find_children("*", "MeshInstance3D", true, false)
+	var combined := AABB()
+	var has_bounds := false
+	for node in meshes:
+		var mesh_node := node as MeshInstance3D
+		if mesh_node.mesh == null:
+			continue
+		var local_bounds: AABB = root.global_transform.affine_inverse() * mesh_node.global_transform * mesh_node.get_aabb()
+		if has_bounds:
+			combined = combined.merge(local_bounds)
+		else:
+			combined = local_bounds
+			has_bounds = true
+	if has_bounds and combined.size.y > 0.001:
+		var factor := target_height / combined.size.y
+		root.scale = root.scale * factor
+		root.position.y = -combined.position.y * factor
 
 func _find_animation_player(root: Node) -> AnimationPlayer:
 	var players := root.find_children("*", "AnimationPlayer", true, false)
@@ -179,9 +199,8 @@ func _physics_process(delta: float) -> void:
 	capsule_collision.position.y = posture_height * 0.5
 
 	var stick_strength := clampf(move_vector.length(), 0.0, 1.0)
-	var auto_sprinting := stick_strength > 0.76 and not crouching and not sitting and not prone
 	var current_speed := speed
-	if (sprinting or auto_sprinting) and not crouching and not sitting and not prone:
+	if sprinting and not crouching and not sitting and not prone:
 		current_speed = sprint_speed
 	if crouching:
 		current_speed = crouch_speed
@@ -236,7 +255,7 @@ func _play_locomotion(horizontal_speed: float) -> void:
 	if animation_player == null:
 		_apply_procedural_pose("run" if sprinting else "walk", 0.0)
 		return
-	var target := "run" if sprinting or (move_vector.length() > 0.76) or horizontal_speed > 5.3 else "walk"
+	var target := "run" if sprinting else "walk"
 	if _play_animation_by_words([target]):
 		return
 	_apply_procedural_pose(target, 0.0)
@@ -344,7 +363,7 @@ func _set_bone_rot(bone_name: String, euler: Vector3) -> void:
 
 
 func _update_camera(delta: float) -> void:
-	var desired := 2.9
+	var desired := 3.35
 	if aiming: desired = 1.9
 	if scope_zoom: desired = 1.15
 	var origin := camera_pivot.global_position
@@ -355,7 +374,7 @@ func _update_camera(delta: float) -> void:
 	if not hit.is_empty():
 		desired = maxf(1.1, origin.distance_to(hit.position) - 0.2)
 	camera_distance = lerpf(camera_distance, desired, minf(delta * 10.0, 1.0))
-	camera.position = Vector3(0.38, 0.55, camera_distance)
+	camera.position = Vector3(0.28, 0.48, camera_distance)
 
 func _cache_secondary_bones() -> void:
 	secondary_bones.clear()
