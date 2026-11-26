@@ -22,6 +22,7 @@ var secondary_phase := 0.0
 var aiming := false
 var driving_mode := false
 var scope_zoom := false
+var emote_kind := ""
 var bag_open := false
 var health := 100
 
@@ -121,6 +122,10 @@ func handle_action(action: String, pressed: bool = true) -> void:
 				sitting = false
 				prone = false
 		"aim": aiming = pressed
+		"emote_wave":
+			if pressed: _apply_procedural_pose("wave", 0.0)
+		"emote_dance":
+			if pressed: _apply_procedural_pose("dance", 0.0)
 		"drive": driving_mode = pressed
 		"scope":
 			scope_zoom = pressed
@@ -217,6 +222,8 @@ func _physics_process(delta: float) -> void:
 		_apply_procedural_pose("crouch", delta)
 	elif moving:
 		_play_locomotion(horizontal_speed)
+	elif emote_kind != "":
+		_apply_procedural_pose(emote_kind, delta)
 	else:
 		_apply_procedural_pose("idle", delta)
 
@@ -243,6 +250,8 @@ func _play_animation_by_words(words: Array) -> bool:
 
 # Procedural poses use the model's real rig; no AI-generated motion or fake character mesh.
 func _apply_procedural_pose(kind: String, delta: float) -> void:
+	if kind == "wave" or kind == "dance": emote_kind = kind
+	elif kind == "idle" or kind == "walk" or kind == "run": emote_kind = ""
 	if animation_player != null and animation_player.is_playing():
 		animation_player.stop()
 	if skeleton == null:
@@ -295,6 +304,15 @@ func _apply_procedural_pose(kind: String, delta: float) -> void:
 		_set_bone_rot("Head", Vector3(-0.12, 0, 0))
 		_set_bone_rot("LeftArm", Vector3(-0.75, 0, -0.25))
 		_set_bone_rot("RightArm", Vector3(-0.75, 0, 0.25))
+	elif kind == "wave":
+		_set_bone_rot("RightArm", Vector3(-0.4, 0, 1.0 + sin(pose_time * 5.0) * 0.35))
+		_set_bone_rot("RightForeArm", Vector3(-0.7, 0, 0))
+	elif kind == "dance":
+		var beat := sin(pose_time * 5.0)
+		_set_bone_rot("Hips", Vector3(0, 0, beat * 0.22))
+		_set_bone_rot("Spine", Vector3(0, 0, -beat * 0.18))
+		_set_bone_rot("LeftArm", Vector3(beat * 0.5, 0, -0.8))
+		_set_bone_rot("RightArm", Vector3(-beat * 0.5, 0, 0.8))
 	elif kind == "crouch":
 		_set_bone_rot("Hips", Vector3(0.20, 0, 0))
 		_set_bone_rot("Spine", Vector3(-0.12, 0, 0))
@@ -332,7 +350,7 @@ func _update_camera(delta: float) -> void:
 	if not hit.is_empty():
 		desired = maxf(1.1, origin.distance_to(hit.position) - 0.2)
 	camera_distance = lerpf(camera_distance, desired, minf(delta * 10.0, 1.0))
-	camera.position = Vector3(0.55, 1.25, camera_distance)
+	camera.position = Vector3(0.38, 0.55, camera_distance)
 
 func _cache_secondary_bones() -> void:
 	secondary_bones.clear()
