@@ -12,6 +12,9 @@ var active_character := 1
 var move_vector := Vector2.ZERO
 var sprinting := false
 var crouching := false
+var sitting := false
+var prone := false
+var posture_height := 1.78
 var aiming := false
 var driving_mode := false
 var scope_zoom := false
@@ -107,12 +110,16 @@ func rotate_camera(delta_pixels: Vector2) -> void:
 func handle_action(action: String, pressed: bool = true) -> void:
 	match action:
 		"sprint": sprinting = pressed
-		"crouch": crouching = pressed
+		"crouch":
+			if pressed:
+				crouching = not crouching
+				sitting = false
+				prone = false
 		"aim": aiming = pressed
 		"drive": driving_mode = pressed
 		"scope": scope_zoom = pressed
 		"jump":
-			if pressed and is_on_floor() and not crouching:
+			if pressed and is_on_floor() and not crouching and not sitting and not prone:
 				velocity.y = jump_velocity
 				is_jumping = true
 		"bag":
@@ -123,8 +130,16 @@ func handle_action(action: String, pressed: bool = true) -> void:
 			if pressed: print("Grenade action requested")
 		"interact":
 			if pressed: print("Interact action requested")
+		"sit":
+			if pressed:
+				sitting = not sitting
+				crouching = false
+				prone = false
 		"prone":
-			if pressed: crouching = not crouching
+			if pressed:
+				prone = not prone
+				crouching = false
+				sitting = false
 	_emit_status()
 
 func _physics_process(delta: float) -> void:
@@ -137,16 +152,21 @@ func _physics_process(delta: float) -> void:
 	direction.y = 0.0
 	direction = direction.normalized()
 
-	var target_crouch := 1.0 if crouching else 0.0
-	crouch_blend = move_toward(crouch_blend, target_crouch, delta * 7.0)
-	capsule_shape.height = lerpf(1.78, 1.05, crouch_blend)
-	capsule_collision.position.y = capsule_shape.height * 0.5
+	var target_height := 1.78
+	if crouching: target_height = 1.05
+	elif sitting: target_height = 1.00
+	elif prone: target_height = 0.62
+	posture_height = move_toward(posture_height, target_height, delta * 3.8)
+	capsule_shape.height = posture_height
+	capsule_collision.position.y = posture_height * 0.5
 
 	var current_speed := speed
-	if sprinting and not crouching:
+	if sprinting and not crouching and not sitting and not prone:
 		current_speed = sprint_speed
 	if crouching:
 		current_speed = crouch_speed
+	if sitting or prone:
+		current_speed = 0.0
 	if driving_mode:
 		current_speed *= 1.15
 
@@ -171,7 +191,11 @@ func _physics_process(delta: float) -> void:
 		rotation.y = lerp_angle(rotation.y, target_yaw, minf(delta * 10.0, 1.0))
 
 	if not grounded:
-		_apply_procedural_pose("jump", delta)
+		_apply_procedural_pose("jump" if velocity.y > 0.0 else "fall", delta)
+	elif sitting:
+		_apply_procedural_pose("sit", delta)
+	elif prone:
+		_apply_procedural_pose("prone", delta)
 	elif crouching:
 		_apply_procedural_pose("crouch", delta)
 	elif moving:
@@ -226,6 +250,25 @@ func _apply_procedural_pose(kind: String, delta: float) -> void:
 		_set_bone_rot("RightUpLeg", Vector3(-0.42, 0, 0))
 		_set_bone_rot("LeftLeg", Vector3(0.55, 0, 0))
 		_set_bone_rot("RightLeg", Vector3(0.55, 0, 0))
+	elif kind == "fall":
+		_set_bone_rot("Spine", Vector3(0.18, 0, 0))
+		_set_bone_rot("LeftArm", Vector3(0.45, 0, -0.65))
+		_set_bone_rot("RightArm", Vector3(0.45, 0, 0.65))
+		_set_bone_rot("LeftUpLeg", Vector3(-0.22, 0, 0))
+		_set_bone_rot("RightUpLeg", Vector3(-0.22, 0, 0))
+	elif kind == "sit":
+		_set_bone_rot("Hips", Vector3(0.10, 0, 0))
+		_set_bone_rot("Spine", Vector3(-0.10, 0, 0))
+		_set_bone_rot("LeftUpLeg", Vector3(-1.35, 0, 0))
+		_set_bone_rot("RightUpLeg", Vector3(-1.35, 0, 0))
+		_set_bone_rot("LeftLeg", Vector3(1.45, 0, 0))
+		_set_bone_rot("RightLeg", Vector3(1.45, 0, 0))
+	elif kind == "prone":
+		_set_bone_rot("Hips", Vector3(1.35, 0, 0))
+		_set_bone_rot("Spine", Vector3(-0.20, 0, 0))
+		_set_bone_rot("Head", Vector3(-0.12, 0, 0))
+		_set_bone_rot("LeftArm", Vector3(-0.75, 0, -0.25))
+		_set_bone_rot("RightArm", Vector3(-0.75, 0, 0.25))
 	elif kind == "crouch":
 		_set_bone_rot("Hips", Vector3(0.20, 0, 0))
 		_set_bone_rot("Spine", Vector3(-0.12, 0, 0))
@@ -240,6 +283,13 @@ func _set_bone_rot(bone_name: String, euler: Vector3) -> void:
 	if skeleton == null:
 		return
 	var idx := skeleton.find_bone(bone_name)
+	if idx < 0:
+		var wanted := bone_name.to_lower().replace("_", "").replace(" ", "")
+		for i in range(skeleton.get_bone_count()):
+			var actual := skeleton.get_bone_name(i).to_lower().replace("_", "").replace(" ", "")
+			if actual.ends_with(wanted) or actual.ends_with("mixamorig" + wanted):
+				idx = i
+				break
 	if idx >= 0:
 		skeleton.set_bone_pose_rotation(idx, Quaternion.from_euler(euler))
 
@@ -247,6 +297,8 @@ func _emit_status() -> void:
 	var modes: Array[String] = []
 	if sprinting: modes.append("SPRINT")
 	if crouching: modes.append("CROUCH")
+	if sitting: modes.append("SIT")
+	if prone: modes.append("PRONE")
 	if aiming: modes.append("AIM")
 	if driving_mode: modes.append("DRIVE")
 	if scope_zoom: modes.append("SCOPE")
