@@ -323,7 +323,7 @@ func _build_lobby_preview() -> SubViewportContainer:
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var viewport := SubViewport.new()
 	viewport.size = Vector2i(960, 320)
-	viewport.transparent_bg = true
+	viewport.transparent_bg = false
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	container.add_child(viewport)
 
