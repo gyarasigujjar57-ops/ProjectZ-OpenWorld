@@ -2,6 +2,7 @@ extends CharacterBody3D
 
 signal status_changed(text: String)
 
+const AVATAR_PATH := "res://assets/cyborg_rigged.glb"
 var move_vector := Vector2.ZERO
 var sprinting := false
 var crouching := false
@@ -12,8 +13,11 @@ var bag_open := false
 var health := 100
 var camera_pivot: Node3D
 var camera: Camera3D
+var animation_player: AnimationPlayer
+var avatar: Node3D
 var speed := 5.0
 var gravity := 18.0
+var was_moving := false
 
 func _ready() -> void:
 	_build_character()
@@ -22,52 +26,48 @@ func _ready() -> void:
 func _build_character() -> void:
 	var collision := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
-	capsule.radius = 0.38
+	capsule.radius = 0.36
 	capsule.height = 1.8
 	collision.shape = capsule
 	collision.position.y = 0.9
 	add_child(collision)
 
-	var body := MeshInstance3D.new()
-	var body_mesh := CapsuleMesh.new()
-	body_mesh.radius = 0.34
-	body_mesh.height = 1.45
-	body.mesh = body_mesh
-	body.position.y = 0.92
-	var shirt := StandardMaterial3D.new()
-	shirt.albedo_color = Color(0.92, 0.92, 0.88)
-	body.material_override = shirt
-	add_child(body)
-
-	var head := MeshInstance3D.new()
-	var head_mesh := SphereMesh.new()
-	head_mesh.radius = 0.22
-	head_mesh.height = 0.44
-	head.mesh = head_mesh
-	head.position.y = 1.82
-	var skin := StandardMaterial3D.new()
-	skin.albedo_color = Color(0.55, 0.34, 0.22)
-	head.material_override = skin
-	add_child(head)
-
-	var legs := MeshInstance3D.new()
-	var leg_mesh := BoxMesh.new()
-	leg_mesh.size = Vector3(0.62, 0.68, 0.34)
-	legs.mesh = leg_mesh
-	legs.position = Vector3(0, 0.34, 0)
-	var pants := StandardMaterial3D.new()
-	pants.albedo_color = Color(0.08, 0.09, 0.12)
-	legs.material_override = pants
-	add_child(legs)
+	if ResourceLoader.exists(AVATAR_PATH):
+		var packed := load(AVATAR_PATH) as PackedScene
+		if packed:
+			avatar = packed.instantiate()
+			avatar.name = "CyborgAvatar"
+			add_child(avatar)
+			animation_player = _find_animation_player(avatar)
+	else:
+		_build_temporary_fallback()
 
 	camera_pivot = Node3D.new()
-	camera_pivot.position = Vector3(0, 1.55, 0)
+	camera_pivot.position = Vector3(0, 1.45, 0)
 	add_child(camera_pivot)
 	camera = Camera3D.new()
-	camera.position = Vector3(0, 2.2, 5.8)
+	camera.position = Vector3(0, 2.0, 5.5)
 	camera.rotation_degrees.x = -13
 	camera.current = true
 	camera_pivot.add_child(camera)
+
+func _build_temporary_fallback() -> void:
+	var body := MeshInstance3D.new()
+	var capsule := CapsuleMesh.new()
+	capsule.radius = 0.34
+	capsule.height = 1.45
+	body.mesh = capsule
+	body.position.y = 0.92
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.18, 0.22, 0.30)
+	body.material_override = mat
+	add_child(body)
+
+func _find_animation_player(root: Node) -> AnimationPlayer:
+	var players := root.find_children("*", "AnimationPlayer", true, false)
+	if players.size() > 0:
+		return players[0] as AnimationPlayer
+	return null
 
 func set_move_vector(value: Vector2) -> void:
 	move_vector = value
@@ -98,7 +98,8 @@ func _physics_process(delta: float) -> void:
 	var direction := Vector3(move_vector.x, 0, -move_vector.y)
 	if direction.length() > 1.0:
 		direction = direction.normalized()
-	direction = camera_pivot.global_basis * direction
+	if camera_pivot:
+		direction = camera_pivot.global_basis * direction
 	direction.y = 0
 	direction = direction.normalized()
 	var current_speed := speed * (1.65 if sprinting else 1.0)
@@ -109,8 +110,27 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 	move_and_slide()
-	if direction.length() > 0.1:
+	var moving := direction.length() > 0.1
+	if moving:
 		look_at(global_position + direction, Vector3.UP)
+	_update_walk_animation(moving)
+
+func _update_walk_animation(moving: bool) -> void:
+	if animation_player == null:
+		return
+	var walk_name := ""
+	for anim_name in animation_player.get_animation_list():
+		if String(anim_name).to_lower().contains("walk_loop"):
+			walk_name = anim_name
+			break
+	if walk_name == "":
+		return
+	if moving and not was_moving:
+		animation_player.play(walk_name)
+	elif not moving and was_moving:
+		animation_player.stop()
+		animation_player.seek(0.0, true)
+	was_moving = moving
 
 func _emit_status() -> void:
 	var modes := []

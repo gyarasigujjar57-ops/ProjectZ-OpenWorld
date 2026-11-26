@@ -5,12 +5,12 @@ const HudScript = preload("res://scripts/mobile_hud.gd")
 
 func _ready() -> void:
 	_build_world()
-	var player = CharacterBody3D.new()
+	var player := CharacterBody3D.new()
 	player.name = "Player"
 	player.set_script(PlayerScript)
 	add_child(player)
 	player.position = Vector3(0, 1, 0)
-	var hud = CanvasLayer.new()
+	var hud := CanvasLayer.new()
 	hud.name = "MobileHUD"
 	hud.set_script(HudScript)
 	add_child(hud)
@@ -37,7 +37,7 @@ func _build_world() -> void:
 	plane.size = Vector2(180, 180)
 	mesh.mesh = plane
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.68, 0.61, 0.43)
+	mat.albedo_color = Color(0.55, 0.57, 0.60)
 	mesh.material_override = mat
 	ground.add_child(mesh)
 	var collision := CollisionShape3D.new()
@@ -48,13 +48,13 @@ func _build_world() -> void:
 	ground.add_child(collision)
 	add_child(ground)
 
-	for i in range(12):
+	for i in range(18):
 		var block := MeshInstance3D.new()
 		var box := BoxMesh.new()
-		box.size = Vector3(3, randf_range(2.0, 8.0), 3)
+		box.size = Vector3(3.5, randf_range(3.0, 10.0), 3.5)
 		block.mesh = box
 		var building_mat := StandardMaterial3D.new()
-		building_mat.albedo_color = Color(0.48, 0.52, 0.58)
+		building_mat.albedo_color = Color(0.38, 0.43, 0.50)
 		block.material_override = building_mat
-		block.position = Vector3(randf_range(-35, 35), box.size.y * 0.5, randf_range(-35, 35))
+		block.position = Vector3(randf_range(-42, 42), box.size.y * 0.5, randf_range(-42, 42))
 		add_child(block)
