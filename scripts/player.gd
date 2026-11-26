@@ -15,6 +15,10 @@ var crouching := false
 var sitting := false
 var prone := false
 var posture_height := 1.78
+var landing_blend := 0.0
+var camera_distance := 5.0
+var secondary_bones: Array[int] = []
+var secondary_phase := 0.0
 var aiming := false
 var driving_mode := false
 var scope_zoom := false
@@ -61,7 +65,7 @@ func _build_camera() -> void:
 	add_child(camera_pivot)
 
 	camera = Camera3D.new()
-	camera.position = Vector3(0, 1.25, 5.0)
+	camera.position = Vector3(0.55, 1.25, camera_distance)
 	camera.rotation_degrees.x = camera_pitch
 	camera.current = true
 	camera.fov = 72.0
@@ -86,6 +90,7 @@ func switch_character(index: int) -> void:
 	add_child(avatar)
 	animation_player = _find_animation_player(avatar)
 	skeleton = _find_skeleton(avatar)
+	_cache_secondary_bones()
 	active_character = index
 	_apply_procedural_pose("idle", 0.0)
 	_emit_status()
@@ -103,7 +108,7 @@ func set_move_vector(value: Vector2) -> void:
 
 func rotate_camera(delta_pixels: Vector2) -> void:
 	camera_yaw -= delta_pixels.x * 0.0045
-	camera_pitch = clampf(camera_pitch - delta_pixels.y * 0.20, -32.0, 20.0)
+	camera_pitch = clampf(camera_pitch - delta_pixels.y * 0.20, -38.0, 24.0)
 	camera_pivot.rotation.y = camera_yaw
 	camera.rotation_degrees.x = camera_pitch
 
@@ -144,7 +149,9 @@ func handle_action(action: String, pressed: bool = true) -> void:
 
 func _physics_process(delta: float) -> void:
 	pose_time += delta
+	secondary_phase += delta
 	var on_floor_before := is_on_floor()
+	var impact_speed := velocity.y
 	var local_direction := Vector3(move_vector.x, 0.0, -move_vector.y)
 	if local_direction.length() > 1.0:
 		local_direction = local_direction.normalized()
@@ -181,7 +188,11 @@ func _physics_process(delta: float) -> void:
 
 	var grounded := is_on_floor()
 	if grounded and not was_on_floor:
+		landing_blend = clampf(absf(impact_speed) / 10.0, 0.0, 1.0)
 		is_jumping = false
+	landing_blend = move_toward(landing_blend, 0.0, delta * 2.8)
+	_update_camera(delta)
+	_update_secondary_motion()
 	was_on_floor = grounded
 
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
@@ -205,12 +216,12 @@ func _physics_process(delta: float) -> void:
 
 func _play_locomotion(horizontal_speed: float) -> void:
 	if animation_player == null:
-		_apply_procedural_pose("idle", 0.0)
+		_apply_procedural_pose("run" if sprinting else "walk", 0.0)
 		return
 	var target := "run" if sprinting or horizontal_speed > 5.3 else "walk"
 	if _play_animation_by_words([target]):
 		return
-	_apply_procedural_pose("idle", 0.0)
+	_apply_procedural_pose(target, 0.0)
 
 func _play_animation_by_words(words: Array) -> bool:
 	if animation_player == null:
@@ -250,6 +261,15 @@ func _apply_procedural_pose(kind: String, delta: float) -> void:
 		_set_bone_rot("RightUpLeg", Vector3(-0.42, 0, 0))
 		_set_bone_rot("LeftLeg", Vector3(0.55, 0, 0))
 		_set_bone_rot("RightLeg", Vector3(0.55, 0, 0))
+	elif kind == "walk" or kind == "run":
+		var stride := 5.8 if kind == "walk" else 8.8
+		var swing := sin(pose_time * stride) * (0.42 if kind == "walk" else 0.72)
+		_set_bone_rot("LeftUpLeg", Vector3(swing, 0, 0))
+		_set_bone_rot("RightUpLeg", Vector3(-swing, 0, 0))
+		_set_bone_rot("LeftLeg", Vector3(maxf(0.0, -swing) * 0.75, 0, 0))
+		_set_bone_rot("RightLeg", Vector3(maxf(0.0, swing) * 0.75, 0, 0))
+		_set_bone_rot("LeftArm", Vector3(-swing * 0.65, 0, -0.04))
+		_set_bone_rot("RightArm", Vector3(swing * 0.65, 0, 0.04))
 	elif kind == "fall":
 		_set_bone_rot("Spine", Vector3(0.18, 0, 0))
 		_set_bone_rot("LeftArm", Vector3(0.45, 0, -0.65))
@@ -292,6 +312,37 @@ func _set_bone_rot(bone_name: String, euler: Vector3) -> void:
 				break
 	if idx >= 0:
 		skeleton.set_bone_pose_rotation(idx, Quaternion.from_euler(euler))
+
+
+func _update_camera(delta: float) -> void:
+	var desired := 5.0
+	var origin := camera_pivot.global_position
+	var endpoint := origin - camera_pivot.global_basis.z * desired
+	var query := PhysicsRayQueryParameters3D.create(origin, endpoint)
+	query.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if not hit.is_empty():
+		desired = maxf(1.1, origin.distance_to(hit.position) - 0.2)
+	camera_distance = lerpf(camera_distance, desired, minf(delta * 10.0, 1.0))
+	camera.position = Vector3(0.55, 1.25, camera_distance)
+
+func _cache_secondary_bones() -> void:
+	secondary_bones.clear()
+	if skeleton == null:
+		return
+	for i in range(skeleton.get_bone_count()):
+		var n := skeleton.get_bone_name(i).to_lower()
+		if n.contains("hair") or n.contains("ponytail") or n.contains("coat") or n.contains("skirt") or n.contains("cloth") or n.contains("scarf"):
+			secondary_bones.append(i)
+
+func _update_secondary_motion() -> void:
+	if skeleton == null:
+		return
+	var sway := clampf(Vector2(velocity.x, velocity.z).length() / sprint_speed, 0.0, 1.0)
+	for i in secondary_bones:
+		var phase := secondary_phase * (2.0 + float(i % 4) * 0.25)
+		var angle := sin(phase) * 0.055 * sway
+		skeleton.set_bone_pose_rotation(i, Quaternion.from_euler(Vector3(angle, 0, angle * 0.45)))
 
 func _emit_status() -> void:
 	var modes: Array[String] = []
