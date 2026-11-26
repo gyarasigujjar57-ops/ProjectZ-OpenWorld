@@ -47,7 +47,11 @@ jobs:
       - name: Import project
         run: godot --headless --editor --path . --import
       - name: Export debug APK
-        run: godot --headless --verbose --path . --export-debug "Android" ProjectZ-debug.apk
+        run: |
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$HOME/.android/debug.keystore"
+          export GODOT_ANDROID_KEYSTORE_DEBUG_USER="androiddebugkey"
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="android"
+          godot --headless --verbose --path . --export-debug "Android" ProjectZ-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: ProjectZ-debug-apk
