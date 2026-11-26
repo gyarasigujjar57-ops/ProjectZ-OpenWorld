@@ -118,21 +118,21 @@ func _physics_process(delta: float) -> void:
 func _update_walk_animation(moving: bool) -> void:
 	if animation_player == null:
 		return
-	var walk_name := ""
+	var wanted := "run" if sprinting else "walk"
+	var chosen := ""
 	for anim_name in animation_player.get_animation_list():
-		if String(anim_name).to_lower().contains("walk_loop"):
-			walk_name = anim_name
+		var lower := String(anim_name).to_lower()
+		if lower == wanted or lower.ends_with("/" + wanted) or lower.ends_with("_" + wanted):
+			chosen = String(anim_name)
 			break
-	if walk_name == "":
+	if chosen == "":
 		return
-	if moving and not was_moving:
-		var walk_animation := animation_player.get_animation(walk_name)
-		if walk_animation:
-			walk_animation.loop_mode = Animation.LOOP_LINEAR
-		animation_player.play(walk_name)
-	elif not moving and was_moving:
-		animation_player.stop()
-		animation_player.seek(0.0, true)
+	if moving:
+		if animation_player.current_animation != chosen or not animation_player.is_playing():
+			animation_player.play(chosen)
+	else:
+		if animation_player.is_playing():
+			animation_player.stop()
 	was_moving = moving
 
 func _emit_status() -> void:
