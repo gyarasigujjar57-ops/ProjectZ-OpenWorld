@@ -20,7 +20,7 @@ func begin_floating_touch(id: int, screen_pos: Vector2) -> void:
 	finger_id = id
 	active = true
 	using_floating = true
-	floating_center = to_local(screen_pos)
+	floating_center = Vector2(128.0, get_viewport_rect().size.y - 132.0)
 	queue_redraw()
 	_update_knob(screen_pos)
 
@@ -41,9 +41,14 @@ func _update_knob(screen_pos: Vector2) -> void:
 	queue_redraw()
 
 func _draw() -> void:
+	var center := Vector2(128.0, get_viewport_rect().size.y - 132.0)
+	draw_circle(center, radius, Color(0.02,0.04,0.08,0.28))
+	draw_arc(center, radius, 0, TAU, 64, Color(0.8,0.88,1.0,0.58), 3.0)
 	if not active:
+		draw_circle(center, 29, Color(0.05,0.25,0.48,0.50))
+		draw_arc(center, 29, 0, TAU, 48, Color(0.7,0.92,1.0,0.68), 3.0)
 		return
-	var center := floating_center
+	center = floating_center
 	draw_circle(center, radius, Color(0.02,0.04,0.08,0.45))
 	draw_arc(center, radius, 0, TAU, 64, Color(0.8,0.88,1.0,0.9), 3.0)
 	draw_circle(center + knob * radius * 0.7, 29, Color(0.05,0.48,1.0,0.85))
