@@ -95,7 +95,7 @@ func handle_action(action: String, pressed: bool = true) -> void:
 	_emit_status()
 
 func _physics_process(delta: float) -> void:
-	var direction := Vector3(move_vector.x, 0, move_vector.y)
+	var direction := Vector3(move_vector.x, 0, -move_vector.y)
 	if direction.length() > 1.0:
 		direction = direction.normalized()
 	direction = camera_pivot.global_basis * direction
