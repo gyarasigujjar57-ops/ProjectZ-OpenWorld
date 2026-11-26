@@ -7,6 +7,8 @@ signal camera_dragged(delta_pixels: Vector2)
 signal game_started
 
 const JoystickScript = preload("res://scripts/virtual_joystick.gd")
+const BUTTON_SIZE := 66.0
+const BUTTON_GAP := 12.0
 var status_label: Label
 var lobby: Control
 var game_layer: Control
@@ -21,13 +23,14 @@ var draggable_controls: Array[Control] = []
 var drag_control: Control
 var drag_offset := Vector2.ZERO
 var saved_positions := ConfigFile.new()
+var button_keys: Array[String] = []
 
 func _ready() -> void:
 	_build_hud()
 
 func _input(event: InputEvent) -> void:
 	var vp := get_viewport().get_visible_rect().size
-	if not game_active:
+	if not game_active or edit_layout:
 		return
 	if event is InputEventScreenTouch:
 		if event.pressed:
@@ -69,26 +72,28 @@ func _build_hud() -> void:
 	game_layer.add_child(joystick)
 	joystick.vector_changed.connect(func(v): move_vector_changed.emit(v))
 
-	var gear := Button.new()
-	gear.text = "⚙"
-	gear.position = Vector2(18, 14)
-	gear.custom_minimum_size = Vector2(44, 44)
-	gear.pressed.connect(_toggle_settings)
+	var gear := _make_round_button("⚙", "settings", false)
+	gear.anchor_left = 1.0
+	gear.anchor_right = 1.0
+	gear.offset_left = -58
+	gear.offset_right = -12
+	gear.offset_top = 12
+	gear.offset_bottom = 58
 	root.add_child(gear)
+	gear.pressed.connect(_toggle_settings)
 
-	var settings := PanelContainer.new()
-	settings_panel = settings
-	settings.position = Vector2(68, 14)
-	settings.custom_minimum_size = Vector2(250, 0)
-	settings.visible = false
-	root.add_child(settings)
+	settings_panel = PanelContainer.new()
+	settings_panel.position = Vector2(18, 68)
+	settings_panel.custom_minimum_size = Vector2(220, 0)
+	settings_panel.visible = false
+	root.add_child(settings_panel)
 	var sv := VBoxContainer.new()
-	settings.add_child(sv)
+	settings_panel.add_child(sv)
 	var st := Label.new()
 	st.text = "CONTROL SETTINGS"
 	sv.add_child(st)
 	var edit := Button.new()
-	edit.text = "CUSTOMIZE HUD: OFF"
+	edit.text = "CUSTOMIZE HUD"
 	edit.toggle_mode = true
 	edit.toggled.connect(_set_edit_layout)
 	sv.add_child(edit)
@@ -157,76 +162,89 @@ func _build_hud() -> void:
 	status_label.add_theme_font_size_override("font_size", 13)
 	game_layer.add_child(status_label)
 
-	var top_gear := Button.new()
-	top_gear.text = "⚙"
-	top_gear.anchor_left = 1.0
-	top_gear.anchor_right = 1.0
-	top_gear.offset_left = -58
-	top_gear.offset_right = -12
-	top_gear.offset_top = 12
-	top_gear.offset_bottom = 58
-	top_gear.pressed.connect(_toggle_settings)
-	game_layer.add_child(top_gear)
-
-	var action_specs := [
-		["JUMP","jump",false],["SPRINT","sprint",true],
-		["AIM","aim",true],["CROUCH","crouch",true],
-		["EMOTE","emote",false],["BAG","bag",false],
-		["ZOOM +","zoom_in",false],["ZOOM −","zoom_out",false]
+	var actions := [
+		["⤒", "jump", false, -104, -185],
+		["➤", "sprint", true, -182, -110],
+		["◎", "aim", true, -104, -110],
+		["▣", "crouch", true, -260, -110],
+		["☺", "emote", false, -338, -110],
+		["＋", "zoom_in", false, -182, -185],
+		["－", "zoom_out", false, -260, -185],
+		["▤", "bag", false, -338, -185]
 	]
-	for i in range(action_specs.size()):
-		var spec: Array = action_specs[i]
-		var btn := _make_action_button(String(spec[0]), String(spec[1]), bool(spec[2]))
-		var col := i % 2
-		var row := i / 2
-		btn.anchor_left = 1.0
-		btn.anchor_right = 1.0
-		btn.anchor_top = 1.0
-		btn.anchor_bottom = 1.0
-		btn.offset_left = -224 + col * 108
-		btn.offset_right = -118 + col * 108
-		btn.offset_top = -220 + row * 52
-		btn.offset_bottom = -176 + row * 52
-		game_layer.add_child(btn)
-		draggable_controls.append(btn)
-		_load_control_position(btn, String(spec[1]))
+	for spec in actions:
+		var b := _make_round_button(String(spec[0]), String(spec[1]), bool(spec[2]))
+		b.anchor_left = 1.0
+		b.anchor_right = 1.0
+		b.anchor_top = 1.0
+		b.anchor_bottom = 1.0
+		b.offset_left = float(spec[3])
+		b.offset_right = float(spec[3]) + BUTTON_SIZE
+		b.offset_top = float(spec[4])
+		b.offset_bottom = float(spec[4]) + BUTTON_SIZE
+		game_layer.add_child(b)
+		draggable_controls.append(b)
+		button_keys.append(String(spec[1]))
+		_load_control_position(b, String(spec[1]))
+		_connect_action(b, String(spec[1]), bool(spec[2]))
 
 	emote_panel = PanelContainer.new()
 	emote_panel.anchor_left = 1.0
 	emote_panel.anchor_top = 1.0
 	emote_panel.anchor_right = 1.0
 	emote_panel.anchor_bottom = 1.0
-	emote_panel.offset_left = -330
-	emote_panel.offset_top = -245
-	emote_panel.offset_right = -115
-	emote_panel.offset_bottom = -95
+	emote_panel.offset_left = -310
+	emote_panel.offset_top = -310
+	emote_panel.offset_right = -95
+	emote_panel.offset_bottom = -185
 	emote_panel.visible = false
 	game_layer.add_child(emote_panel)
-	var emotes := VBoxContainer.new()
+	var emotes := HBoxContainer.new()
 	emote_panel.add_child(emotes)
-	for pair in [["WAVE","emote_wave"],["DANCE","emote_dance"],["SIT","sit"],["PRONE","prone"]]:
-		var eb := Button.new()
-		eb.text = pair[0]
-		eb.pressed.connect(func():
-			action_triggered.emit(pair[1], true)
-			emote_panel.visible = false
-		)
+	for pair in [["👋","emote_wave"],["♫","emote_dance"],["🪑","sit"],["⬇","prone"]]:
+		var eb := _make_round_button(String(pair[0]), String(pair[1]), false)
 		emotes.add_child(eb)
+		eb.pressed.connect(_fire_emote.bind(String(pair[1])))
 
-func _make_action_button(caption: String, action: String, toggled: bool) -> Button:
+func _make_round_button(glyph: String, key: String, toggled: bool) -> Button:
 	var b := Button.new()
-	b.text = caption
-	b.custom_minimum_size = Vector2(100, 44)
-	b.add_theme_font_size_override("font_size", 14)
+	b.text = glyph
+	b.custom_minimum_size = Vector2(BUTTON_SIZE, BUTTON_SIZE)
+	b.size = Vector2(BUTTON_SIZE, BUTTON_SIZE)
 	b.toggle_mode = toggled
+	b.add_theme_font_size_override("font_size", 27)
+	b.add_theme_color_override("font_color", Color(0.94, 0.98, 1.0))
+	b.add_theme_color_override("font_hover_color", Color.WHITE)
+	b.add_theme_color_override("font_pressed_color", Color.WHITE)
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.025, 0.07, 0.13, 0.58)
+	normal.border_color = Color(0.72, 0.86, 1.0, 0.92)
+	normal.set_border_width_all(2)
+	normal.set_corner_radius_all(36)
+	normal.shadow_color = Color(0.0, 0.45, 1.0, 0.28)
+	normal.shadow_size = 5
+	var hover := normal.duplicate()
+	hover.bg_color = Color(0.04, 0.28, 0.52, 0.82)
+	var pressed := normal.duplicate()
+	pressed.bg_color = Color(0.05, 0.48, 0.82, 0.95)
+	b.add_theme_stylebox_override("normal", normal)
+	b.add_theme_stylebox_override("hover", hover)
+	b.add_theme_stylebox_override("pressed", pressed)
+	b.add_theme_stylebox_override("hover_pressed", pressed)
+	b.gui_input.connect(func(event): _handle_control_drag(b, key, event))
+	return b
+
+func _connect_action(b: Button, action: String, toggled: bool) -> void:
 	if action == "emote":
 		b.pressed.connect(func(): emote_panel.visible = not emote_panel.visible)
 	elif toggled:
 		b.toggled.connect(func(on): action_triggered.emit(action, on))
 	else:
 		b.pressed.connect(func(): action_triggered.emit(action, true))
-	b.gui_input.connect(func(event): _handle_control_drag(b, action, event))
-	return b
+
+func _fire_emote(action: String) -> void:
+	action_triggered.emit(action, true)
+	emote_panel.visible = false
 
 func _handle_control_drag(control: Control, key: String, event: InputEvent) -> void:
 	if not edit_layout:
@@ -235,25 +253,35 @@ func _handle_control_drag(control: Control, key: String, event: InputEvent) -> v
 		drag_control = control
 		drag_offset = event.position - control.global_position
 	elif event is InputEventScreenDrag and drag_control == control:
-		control.global_position = event.position - drag_offset
+		var vp := get_viewport().get_visible_rect().size
+		var target := event.position - drag_offset
+		target.x = clampf(target.x, 0.0, vp.x - control.size.x)
+		target.y = clampf(target.y, 0.0, vp.y - control.size.y)
+		control.global_position = target
 		_save_control_position(control, key)
 	elif event is InputEventScreenTouch and not event.pressed and drag_control == control:
 		drag_control = null
 
 func _save_control_position(control: Control, key: String) -> void:
-	var vp := get_viewport().get_visible_rect().size
-	saved_positions.set_value("hud", key, [control.position.x, control.position.y])
+	saved_positions.set_value("hud", key, [control.offset_left, control.offset_top])
 	saved_positions.save("user://hud_layout.cfg")
 
 func _load_control_position(control: Control, key: String) -> void:
 	if saved_positions.load("user://hud_layout.cfg") == OK:
 		var p = saved_positions.get_value("hud", key, null)
 		if p is Array and p.size() == 2:
-			control.position = Vector2(p[0], p[1])
+			control.offset_left = float(p[0])
+			control.offset_right = float(p[0]) + BUTTON_SIZE
+			control.offset_top = float(p[1])
+			control.offset_bottom = float(p[1]) + BUTTON_SIZE
 
 func _reset_layout() -> void:
-	for c in draggable_controls:
-		c.position = Vector2.ZERO
+	for i in range(draggable_controls.size()):
+		var c := draggable_controls[i]
+		c.offset_left = [-104.0, -182.0, -104.0, -260.0, -338.0, -182.0, -260.0, -338.0][i]
+		c.offset_right = c.offset_left + BUTTON_SIZE
+		c.offset_top = [-185.0, -110.0, -110.0, -110.0, -110.0, -185.0, -185.0, -185.0][i]
+		c.offset_bottom = c.offset_top + BUTTON_SIZE
 	saved_positions.clear()
 	saved_positions.save("user://hud_layout.cfg")
 
@@ -270,12 +298,6 @@ func _start_game() -> void:
 	lobby.visible = false
 	game_layer.visible = true
 	game_started.emit()
-
-func _add_character_card(parent: VBoxContainer, index: int, caption: String) -> void:
-	var button := Button.new()
-	button.text = caption
-	button.pressed.connect(func(): character_switch_requested.emit(index))
-	parent.add_child(button)
 
 func set_active_character(index: int) -> void:
 	pass
