@@ -24,6 +24,7 @@ var drag_control: Control
 var drag_offset := Vector2.ZERO
 var saved_positions := ConfigFile.new()
 var button_keys: Array[String] = []
+var selected_character := 1
 
 func _ready() -> void:
 	_build_hud()
@@ -128,29 +129,38 @@ func _build_hud() -> void:
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.add_theme_font_size_override("font_size", 16)
 	lobby.add_child(subtitle)
+	var preview := _build_lobby_preview()
+	preview.anchor_left = 0.08
+	preview.anchor_right = 0.92
+	preview.anchor_top = 0.20
+	preview.anchor_bottom = 0.57
+	preview.offset_top = 0
+	preview.offset_bottom = 0
+	lobby.add_child(preview)
+
 	var choose := Label.new()
 	choose.text = "SELECT CHARACTER"
-	choose.position = Vector2(0, 170)
+	choose.position = Vector2(0, 405)
 	choose.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	choose.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lobby.add_child(choose)
 	var teen := Button.new()
 	teen.text = "CHARACTER 1"
-	teen.position = Vector2(0, 205)
+	teen.position = Vector2(0, 438)
 	teen.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	teen.custom_minimum_size = Vector2(180, 48)
-	teen.pressed.connect(func(): character_switch_requested.emit(1))
+	teen.pressed.connect(func(): _select_character(1))
 	lobby.add_child(teen)
 	var cyborg := Button.new()
 	cyborg.text = "CHARACTER 2"
-	cyborg.position = Vector2(0, 258)
+	cyborg.position = Vector2(0, 492)
 	cyborg.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	cyborg.custom_minimum_size = Vector2(180, 48)
-	cyborg.pressed.connect(func(): character_switch_requested.emit(2))
+	cyborg.pressed.connect(func(): _select_character(2))
 	lobby.add_child(cyborg)
 	var start := Button.new()
 	start.text = "▶   START"
-	start.position = Vector2(0, 335)
+	start.position = Vector2(0, 565)
 	start.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	start.custom_minimum_size = Vector2(220, 64)
 	start.add_theme_font_size_override("font_size", 24)
@@ -300,7 +310,95 @@ func _start_game() -> void:
 	game_started.emit()
 
 func set_active_character(index: int) -> void:
-	pass
+	_select_character(index, false)
+
+func _select_character(index: int, notify_player: bool = true) -> void:
+	selected_character = index
+	if notify_player:
+		character_switch_requested.emit(index)
+
+func _build_lobby_preview() -> SubViewportContainer:
+	var container := SubViewportContainer.new()
+	container.stretch = true
+	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var viewport := SubViewport.new()
+	viewport.size = Vector2i(960, 320)
+	viewport.transparent_bg = true
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	container.add_child(viewport)
+
+	var world := Node3D.new()
+	viewport.add_child(world)
+	var env_node := WorldEnvironment.new()
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0.035, 0.075, 0.13, 1.0)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.72, 0.82, 1.0)
+	env.ambient_light_energy = 1.0
+	env_node.environment = env
+	world.add_child(env_node)
+
+	var key_light := DirectionalLight3D.new()
+	key_light.rotation_degrees = Vector3(-28, -24, 0)
+	key_light.light_energy = 1.5
+	world.add_child(key_light)
+
+	var floor_mesh := MeshInstance3D.new()
+	var floor := PlaneMesh.new()
+	floor.size = Vector2(8, 4)
+	floor_mesh.mesh = floor
+	floor_mesh.position = Vector3(0, -0.025, 0)
+	var floor_mat := StandardMaterial3D.new()
+	floor_mat.albedo_color = Color(0.10, 0.16, 0.23)
+	floor_mat.roughness = 0.82
+	floor_mesh.material_override = floor_mat
+	world.add_child(floor_mesh)
+
+	_add_preview_character(world, 1, -1.05)
+	_add_preview_character(world, 2, 1.05)
+
+	var cam := Camera3D.new()
+	cam.position = Vector3(0, 1.45, 6.8)
+	cam.fov = 38.0
+	world.add_child(cam)
+	cam.look_at(Vector3(0, 1.0, 0), Vector3.UP)
+	cam.current = true
+	return container
+
+func _add_preview_character(parent: Node3D, character_index: int, x_pos: float) -> void:
+	var paths := {
+		1: "res://assets/character_1_teen.glb",
+		2: "res://assets/character_2_cyborg.glb"
+	}
+	var packed := load(paths[character_index]) as PackedScene
+	if packed == null:
+		push_error("Preview character could not load: " + paths[character_index])
+		return
+	var avatar := packed.instantiate() as Node3D
+	parent.add_child(avatar)
+	avatar.position = Vector3(x_pos, 0, 0)
+	avatar.rotation.y = PI
+	_fit_preview_height(avatar, 1.72)
+
+func _fit_preview_height(avatar: Node3D, target_height: float) -> void:
+	var meshes := avatar.find_children("*", "MeshInstance3D", true, false)
+	var combined := AABB()
+	var has_bounds := false
+	for node in meshes:
+		var mesh_node := node as MeshInstance3D
+		if mesh_node.mesh == null:
+			continue
+		var local_bounds: AABB = avatar.global_transform.affine_inverse() * mesh_node.global_transform * mesh_node.get_aabb()
+		if has_bounds:
+			combined = combined.merge(local_bounds)
+		else:
+			combined = local_bounds
+			has_bounds = true
+	if has_bounds and combined.size.y > 0.001:
+		var factor := target_height / combined.size.y
+		avatar.scale = avatar.scale * factor
+		avatar.position.y = -combined.position.y * factor
 
 func set_status(value: String) -> void:
 	if is_instance_valid(status_label):
