@@ -126,6 +126,9 @@ func _update_walk_animation(moving: bool) -> void:
 	if walk_name == "":
 		return
 	if moving and not was_moving:
+		var walk_animation := animation_player.get_animation(walk_name)
+		if walk_animation:
+			walk_animation.loop_mode = Animation.LOOP_LINEAR
 		animation_player.play(walk_name)
 	elif not moving and was_moving:
 		animation_player.stop()
