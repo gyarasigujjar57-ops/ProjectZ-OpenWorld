@@ -18,10 +18,10 @@ var is_crouching := false
 var current_vehicle: CharacterBody3D
 var health := 100
 var health_label: Label
-var hero_left_arm: MeshInstance3D
-var hero_right_arm: MeshInstance3D
-var hero_left_leg: MeshInstance3D
-var hero_right_leg: MeshInstance3D
+var hero_left_arm: Node3D
+var hero_right_arm: Node3D
+var hero_left_leg: Node3D
+var hero_right_leg: Node3D
 var hero_walk_clock := 0.0
 
 func _ready() -> void:
