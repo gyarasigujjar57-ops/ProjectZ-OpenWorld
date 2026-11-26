@@ -178,8 +178,10 @@ func _physics_process(delta: float) -> void:
 	capsule_shape.height = posture_height
 	capsule_collision.position.y = posture_height * 0.5
 
+	var stick_strength := clampf(move_vector.length(), 0.0, 1.0)
+	var auto_sprinting := stick_strength > 0.76 and not crouching and not sitting and not prone
 	var current_speed := speed
-	if sprinting and not crouching and not sitting and not prone:
+	if (sprinting or auto_sprinting) and not crouching and not sitting and not prone:
 		current_speed = sprint_speed
 	if crouching:
 		current_speed = crouch_speed
@@ -188,8 +190,11 @@ func _physics_process(delta: float) -> void:
 	if driving_mode:
 		current_speed *= 1.15
 
-	velocity.x = move_toward(velocity.x, direction.x * current_speed, delta * 18.0)
-	velocity.z = move_toward(velocity.z, direction.z * current_speed, delta * 18.0)
+	var target_velocity := direction * current_speed * stick_strength
+	if sitting or prone:
+		target_velocity = Vector3.ZERO
+	velocity.x = move_toward(velocity.x, target_velocity.x, delta * 22.0)
+	velocity.z = move_toward(velocity.z, target_velocity.z, delta * 22.0)
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 	elif velocity.y < 0.0:
@@ -210,7 +215,7 @@ func _physics_process(delta: float) -> void:
 	var moving := horizontal_speed > 0.18
 	if moving and direction.length() > 0.01:
 		var target_yaw := atan2(-direction.x, -direction.z)
-		rotation.y = lerp_angle(rotation.y, target_yaw, minf(delta * 10.0, 1.0))
+		rotation.y = lerp_angle(rotation.y, target_yaw, minf(delta * 14.0, 1.0))
 
 	if not grounded:
 		_apply_procedural_pose("jump" if velocity.y > 0.0 else "fall", delta)
@@ -231,7 +236,7 @@ func _play_locomotion(horizontal_speed: float) -> void:
 	if animation_player == null:
 		_apply_procedural_pose("run" if sprinting else "walk", 0.0)
 		return
-	var target := "run" if sprinting or horizontal_speed > 5.3 else "walk"
+	var target := "run" if sprinting or (move_vector.length() > 0.76) or horizontal_speed > 5.3 else "walk"
 	if _play_animation_by_words([target]):
 		return
 	_apply_procedural_pose(target, 0.0)
