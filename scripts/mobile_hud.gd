@@ -114,6 +114,8 @@ func _build_hud() -> void:
 	var actions := [
 		["⬆", "jump", false],
 		["⚡", "sprint", true],
+		["⏩", "auto_run", false],
+		["⇣", "slide", false],
 		["◎", "aim", true],
 		["▣", "crouch", true],
 		["🪑", "sit", true],
