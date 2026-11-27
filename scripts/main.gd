@@ -122,6 +122,8 @@ func _build_services() -> void:
 	_create_building("Market Shops", Vector3(66, 0, 72), Vector3(58, 8, 16), Color("#d7c2a4"), 2, Color("#a55f3e"))
 	_create_building("Community Centre", Vector3(-70, 0, 72), Vector3(38, 9, 18), Color("#d7d4c9"), 2, Color("#718d9b"))
 	_create_building("Fire Station", Vector3(-66, 0, 165), Vector3(34, 9, 20), Color("#d7d0c4"), 2, Color("#b64c3e"))
+	_create_building("Student Hostel", Vector3(155, 0, 165), Vector3(34, 14, 24), Color("#d8c9ad"), 4, Color("#815b45"))
+	_add_hostel_details(Vector3(155, 0, 165))
 
 func _build_park() -> void:
 	_add_box(self, "Central Green Park", Vector3(0, 0.05, 68), Vector3(48, 0.22, 40), Color("#54834e"))
@@ -210,6 +212,37 @@ func _create_building(building_name: String, pos: Vector3, size: Vector3, wall_c
 	if size.y < 11.0 and size.x > 12.0:
 		_add_solid_piece(root, Vector3(0, 1.45, size.z * 0.12), Vector3(size.x * 0.55, 2.9, 0.18), Color("#c9bba7"), false)
 	_add_box(root, "Entrance Canopy", Vector3(0, 2.65, front_z - 0.78), Vector3(4.8, 0.20, 1.65), accent)
+	_add_facade_details(root, size, floors, accent)
+
+func _add_facade_details(root: Node3D, size: Vector3, floors: int, accent: Color) -> void:
+	var front_z := -size.z * 0.5 - 0.24
+	var count := clampi(int(size.x / 7.0), 2, 6)
+	for floor_index in range(maxi(1, floors)):
+		var y := 2.25 + float(floor_index) * maxf(2.8, size.y / float(maxi(1, floors)))
+		if y > size.y - 0.6:
+			continue
+		for i in range(count):
+			var x := -size.x * 0.5 + (float(i) + 0.5) * size.x / float(count)
+			if absf(x) < 1.5:
+				continue
+			_add_solid_piece(root, Vector3(x, y - 0.82, front_z), Vector3(1.75, 0.12, 0.32), accent, false)
+			_add_solid_piece(root, Vector3(x, y + 0.78, front_z), Vector3(1.75, 0.12, 0.32), accent, false)
+			_add_solid_piece(root, Vector3(x - 0.86, y, front_z), Vector3(0.12, 1.55, 0.28), accent, false)
+			_add_solid_piece(root, Vector3(x + 0.86, y, front_z), Vector3(0.12, 1.55, 0.28), accent, false)
+		_add_solid_piece(root, Vector3(0, y + 1.15, front_z + 0.06), Vector3(size.x - 1.0, 0.10, 0.18), accent, false)
+	_add_solid_piece(root, Vector3(0, size.y + 0.55, 0), Vector3(size.x + 1.2, 0.16, size.z + 1.2), Color("#eee9df"), false)
+
+func _add_hostel_details(pos: Vector3) -> void:
+	_add_box(self, "Hostel Entrance Canopy", pos + Vector3(0, 3.1, -13.8), Vector3(8.0, 0.28, 2.2), Color("#76513d"))
+	_add_box(self, "Hostel Signboard", pos + Vector3(0, 4.25, -12.25), Vector3(7.5, 1.0, 0.18), Color("#314b58"))
+	_add_box(self, "Hostel Courtyard", pos + Vector3(0, 0.10, 15.5), Vector3(44, 0.20, 14), Color("#b7aa91"))
+	for x in [-15.0, 15.0]:
+		_add_box(self, "Hostel Courtyard Planter", pos + Vector3(x, 0.45, 15.5), Vector3(2.0, 0.7, 10), Color("#877c68"))
+	for x in [-8.0, 8.0]:
+		_add_box(self, "Hostel Balcony Slab", pos + Vector3(x, 4.2, -12.35), Vector3(5.8, 0.18, 1.2), Color("#c8bba7"))
+		for rail_x in range(5):
+			_add_box(self, "Hostel Balcony Rail", pos + Vector3(x - 2.4 + float(rail_x) * 1.2, 4.85, -12.85), Vector3(0.08, 1.1, 0.08), Color("#454b4c"))
+		_add_box(self, "Hostel Balcony Top Rail", pos + Vector3(x, 5.38, -12.85), Vector3(5.0, 0.08, 0.08), Color("#454b4c"))
 
 func _add_solid_piece(parent: Node3D, pos: Vector3, size: Vector3, color: Color, solid: bool = true) -> void:
 	var body := StaticBody3D.new()
