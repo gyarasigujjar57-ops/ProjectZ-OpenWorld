@@ -4,39 +4,37 @@ signal move_vector_changed(value: Vector2)
 signal action_triggered(action: String, pressed: bool)
 signal character_switch_requested(index: int)
 signal camera_dragged(delta_pixels: Vector2)
-signal game_started
 
 const JoystickScript = preload("res://scripts/virtual_joystick.gd")
 const BUTTON_SIZE := 54.0
 const BUTTON_GAP := 8.0
+
 var status_label: Label
-var lobby: Control
 var game_layer: Control
 var settings_panel: PanelContainer
 var emote_panel: PanelContainer
 var joystick: Control
 var edit_layout := false
-var game_active := false
 var camera_touch_index := -1
 var last_camera_touch := Vector2.ZERO
 var draggable_controls: Array[Control] = []
 var drag_control: Control
 var drag_offset := Vector2.ZERO
 var saved_positions := ConfigFile.new()
-var button_keys: Array[String] = []
 var selected_character := 1
 
 func _ready() -> void:
+	layer = 20
 	_build_hud()
 
-func _input(event: InputEvent) -> void:
-	var vp := get_viewport().get_visible_rect().size
-	if not game_active or edit_layout:
+func _unhandled_input(event: InputEvent) -> void:
+	if edit_layout:
 		return
+	var vp := get_viewport().get_visible_rect().size
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			var p: Vector2 = event.position
-			if p.x < vp.x * 0.52:
+			if p.x < vp.x * 0.48:
 				if is_instance_valid(joystick):
 					joystick.call("begin_floating_touch", event.index, p)
 			else:
@@ -63,7 +61,7 @@ func _build_hud() -> void:
 
 	game_layer = Control.new()
 	game_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	game_layer.visible = true
+	game_layer.mouse_filter = Control.MOUSE_FILTER_PASS
 	root.add_child(game_layer)
 
 	joystick = Control.new()
@@ -73,18 +71,24 @@ func _build_hud() -> void:
 	game_layer.add_child(joystick)
 	joystick.vector_changed.connect(func(v): move_vector_changed.emit(v))
 
-	var gear := _make_round_button("⚙", "settings", false)
+	status_label = Label.new()
+	status_label.position = Vector2(16, 14)
+	status_label.add_theme_font_size_override("font_size", 15)
+	status_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.95))
+	game_layer.add_child(status_label)
+
+	var gear := _make_button("⚙", "settings", false)
 	gear.anchor_left = 1.0
 	gear.anchor_right = 1.0
-	gear.offset_left = -58
+	gear.offset_left = -62
 	gear.offset_right = -12
 	gear.offset_top = 12
-	gear.offset_bottom = 58
+	gear.offset_bottom = 62
 	root.add_child(gear)
 	gear.pressed.connect(_toggle_settings)
 
 	settings_panel = PanelContainer.new()
-	settings_panel.position = Vector2(18, 68)
+	settings_panel.position = Vector2(14, 70)
 	settings_panel.custom_minimum_size = Vector2(220, 0)
 	settings_panel.visible = false
 	root.add_child(settings_panel)
@@ -107,123 +111,32 @@ func _build_hud() -> void:
 	close.pressed.connect(func(): settings_panel.visible = false)
 	sv.add_child(close)
 
-	lobby = Control.new()
-	lobby.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.add_child(lobby)
-	# Temporary direct-to-game startup: keep the lobby code/assets but do not show it.
-	lobby.visible = false
-	game_active = true
-	var shade := ColorRect.new()
-	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.025, 0.045, 0.08, 0.72)
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lobby.add_child(shade)
-	var title := Label.new()
-	title.text = "PROJECT Z"
-	title.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	title.position = Vector2(0, 48)
-	title.size = Vector2(1280, 56)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 42)
-	lobby.add_child(title)
-	var subtitle := Label.new()
-	subtitle.text = "OPEN WORLD  •  THIRD PERSON"
-	subtitle.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	subtitle.position = Vector2(0, 104)
-	subtitle.size = Vector2(1280, 28)
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.add_theme_font_size_override("font_size", 16)
-	lobby.add_child(subtitle)
-	var preview := _build_lobby_preview()
-	preview.anchor_left = 0.08
-	preview.anchor_right = 0.92
-	preview.anchor_top = 0.20
-	preview.anchor_bottom = 0.57
-	preview.offset_top = 0
-	preview.offset_bottom = 0
-	lobby.add_child(preview)
-
-	var choose := Label.new()
-	choose.text = "SELECT CHARACTER"
-	choose.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	choose.position = Vector2(0, 397)
-	choose.size = Vector2(1280, 30)
-	choose.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lobby.add_child(choose)
-	var teen := Button.new()
-	teen.text = "CHARACTER 1"
-	teen.anchor_left = 0.5
-	teen.anchor_right = 0.5
-	teen.anchor_top = 0.0
-	teen.anchor_bottom = 0.0
-	teen.offset_left = -110
-	teen.offset_right = 110
-	teen.offset_top = 435
-	teen.offset_bottom = 483
-	teen.size = Vector2(220, 48)
-	teen.custom_minimum_size = Vector2(220, 48)
-	teen.pressed.connect(func(): _select_character(1))
-	lobby.add_child(teen)
-	var cyborg := Button.new()
-	cyborg.text = "CHARACTER 2"
-	cyborg.anchor_left = 0.5
-	cyborg.anchor_right = 0.5
-	cyborg.anchor_top = 0.0
-	cyborg.anchor_bottom = 0.0
-	cyborg.offset_left = -110
-	cyborg.offset_right = 110
-	cyborg.offset_top = 490
-	cyborg.offset_bottom = 538
-	cyborg.size = Vector2(220, 48)
-	cyborg.custom_minimum_size = Vector2(220, 48)
-	cyborg.pressed.connect(func(): _select_character(2))
-	lobby.add_child(cyborg)
-	var start := Button.new()
-	start.text = "▶   START"
-	start.anchor_left = 0.5
-	start.anchor_right = 0.5
-	start.anchor_top = 0.0
-	start.anchor_bottom = 0.0
-	start.offset_left = -125
-	start.offset_right = 125
-	start.offset_top = 565
-	start.offset_bottom = 633
-	start.size = Vector2(250, 68)
-	start.custom_minimum_size = Vector2(250, 68)
-	start.add_theme_font_size_override("font_size", 24)
-	start.pressed.connect(_start_game)
-	lobby.add_child(start)
-
-	status_label = Label.new()
-	status_label.position = Vector2(16, 65)
-	status_label.add_theme_font_size_override("font_size", 13)
-	game_layer.add_child(status_label)
-
-	# Landscape third-person HUD: every movement/action is a real touch button, not status text.
 	var actions := [
-		["⬆", "jump", false, -104, -185],
-		["⚡", "sprint", true, -182, -110],
-		["◎", "aim", true, -104, -110],
-		["▣", "crouch", true, -260, -110],
-		["🪑", "sit", true, -338, -110],
-		["⬇", "prone", true, -416, -110],
-		["⇄", "switch", false, -494, -110],
-		["☺", "emote", false, -338, -185],
-		["＋", "zoom_in", false, -182, -185],
-		["－", "zoom_out", false, -260, -185],
-		["▤", "bag", false, -416, -185],
-		["E", "interact", false, -494, -185]
+		["⬆", "jump", false],
+		["⚡", "sprint", true],
+		["◎", "aim", true],
+		["▣", "crouch", true],
+		["🪑", "sit", true],
+		["⬇", "prone", true],
+		["⇄", "switch", false],
+		["☺", "emote", false],
+		["＋", "zoom_in", false],
+		["－", "zoom_out", false],
+		["▤", "bag", false],
+		["E", "interact", false]
 	]
 	for i in range(actions.size()):
 		var spec: Array = actions[i]
-		var b := _make_round_button(String(spec[0]), String(spec[1]), bool(spec[2]))
-		b.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+		var b := _make_button(String(spec[0]), String(spec[1]), bool(spec[2]))
+		b.anchor_left = 1.0
+		b.anchor_right = 1.0
+		b.anchor_top = 1.0
+		b.anchor_bottom = 1.0
 		b.custom_minimum_size = Vector2(BUTTON_SIZE, BUTTON_SIZE)
 		b.size = Vector2(BUTTON_SIZE, BUTTON_SIZE)
 		game_layer.add_child(b)
 		_place_action_button(b, i)
 		draggable_controls.append(b)
-		button_keys.append(String(spec[1]))
 		_load_control_position(b, String(spec[1]))
 		_connect_action(b, String(spec[1]), bool(spec[2]))
 
@@ -233,39 +146,37 @@ func _build_hud() -> void:
 	emote_panel.anchor_right = 1.0
 	emote_panel.anchor_bottom = 1.0
 	emote_panel.offset_left = -310
-	emote_panel.offset_top = -310
+	emote_panel.offset_top = -190
 	emote_panel.offset_right = -95
-	emote_panel.offset_bottom = -185
+	emote_panel.offset_bottom = -120
 	emote_panel.visible = false
 	game_layer.add_child(emote_panel)
 	var emotes := HBoxContainer.new()
 	emote_panel.add_child(emotes)
-	for pair in [["👋","emote_wave"],["♫","emote_dance"]]:
-		var eb := _make_round_button(String(pair[0]), String(pair[1]), false)
+	for pair in [["👋", "emote_wave"], ["♫", "emote_dance"]]:
+		var eb := _make_button(String(pair[0]), String(pair[1]), false)
 		emotes.add_child(eb)
 		eb.pressed.connect(_fire_emote.bind(String(pair[1])))
 
-func _make_round_button(glyph: String, key: String, toggled: bool) -> Button:
+func _make_button(glyph: String, key: String, toggled: bool) -> Button:
 	var b := Button.new()
 	b.text = glyph
 	b.custom_minimum_size = Vector2(BUTTON_SIZE, BUTTON_SIZE)
 	b.size = Vector2(BUTTON_SIZE, BUTTON_SIZE)
 	b.toggle_mode = toggled
-	b.add_theme_font_size_override("font_size", 27)
-	b.add_theme_color_override("font_color", Color(0.94, 0.98, 1.0))
-	b.add_theme_color_override("font_hover_color", Color.WHITE)
-	b.add_theme_color_override("font_pressed_color", Color.WHITE)
+	b.add_theme_font_size_override("font_size", 25)
+	b.add_theme_color_override("font_color", Color(0.96, 0.98, 1.0))
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.025, 0.07, 0.13, 0.58)
-	normal.border_color = Color(0.72, 0.86, 1.0, 0.92)
+	normal.bg_color = Color(0.025, 0.07, 0.13, 0.72)
+	normal.border_color = Color(0.72, 0.86, 1.0, 0.95)
 	normal.set_border_width_all(2)
-	normal.set_corner_radius_all(36)
-	normal.shadow_color = Color(0.0, 0.45, 1.0, 0.28)
-	normal.shadow_size = 5
+	normal.set_corner_radius_all(28)
+	normal.shadow_color = Color(0.0, 0.35, 0.8, 0.35)
+	normal.shadow_size = 4
 	var hover := normal.duplicate()
-	hover.bg_color = Color(0.04, 0.28, 0.52, 0.82)
+	hover.bg_color = Color(0.04, 0.28, 0.52, 0.9)
 	var pressed := normal.duplicate()
-	pressed.bg_color = Color(0.05, 0.48, 0.82, 0.95)
+	pressed.bg_color = Color(0.05, 0.48, 0.82, 0.98)
 	b.add_theme_stylebox_override("normal", normal)
 	b.add_theme_stylebox_override("hover", hover)
 	b.add_theme_stylebox_override("pressed", pressed)
@@ -298,7 +209,8 @@ func _handle_control_drag(control: Control, key: String, event: InputEvent) -> v
 		var target := event.position - drag_offset
 		target.x = clampf(target.x, 0.0, vp.x - control.size.x)
 		target.y = clampf(target.y, 0.0, vp.y - control.size.y)
-		control.global_position = target
+		control.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+		control.position = target
 		_save_control_position(control, key)
 	elif event is InputEventScreenTouch and not event.pressed and drag_control == control:
 		drag_control = null
@@ -311,22 +223,22 @@ func _load_control_position(control: Control, key: String) -> void:
 	if saved_positions.load("user://hud_layout.cfg") == OK:
 		var p = saved_positions.get_value("hud", key, null)
 		if p is Array and p.size() == 2 and float(p[0]) >= 0.0 and float(p[1]) >= 0.0:
+			control.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 			control.position = Vector2(float(p[0]), float(p[1]))
 
 func _place_action_button(control: Control, index: int) -> void:
-	var vp := get_viewport().get_visible_rect().size
-	var columns := 4
-	var col := index % columns
-	var row := int(index / columns)
-	var right_margin := 14.0
-	var bottom_margin := 14.0
-	control.position = Vector2(
-		vp.x - right_margin - BUTTON_SIZE - float(columns - 1 - col) * (BUTTON_SIZE + BUTTON_GAP),
-		vp.y - bottom_margin - BUTTON_SIZE - float(2 - row) * (BUTTON_SIZE + BUTTON_GAP)
-	)
+	var col := index % 4
+	var row := int(index / 4)
+	var right := 14.0 + float(col) * (BUTTON_SIZE + BUTTON_GAP)
+	var bottom := 14.0 + float(row) * (BUTTON_SIZE + BUTTON_GAP)
+	control.offset_left = -right - BUTTON_SIZE
+	control.offset_right = -right
+	control.offset_top = -bottom - BUTTON_SIZE
+	control.offset_bottom = -bottom
 
 func _reset_layout() -> void:
 	for i in range(draggable_controls.size()):
+		draggable_controls[i].set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 		_place_action_button(draggable_controls[i], i)
 	saved_positions.clear()
 	saved_positions.save("user://hud_layout.cfg")
@@ -339,12 +251,6 @@ func _set_edit_layout(on: bool) -> void:
 func _toggle_settings() -> void:
 	settings_panel.visible = not settings_panel.visible
 
-func _start_game() -> void:
-	game_active = true
-	lobby.visible = false
-	game_layer.visible = true
-	game_started.emit()
-
 func set_active_character(index: int) -> void:
 	_select_character(index, false)
 
@@ -352,89 +258,6 @@ func _select_character(index: int, notify_player: bool = true) -> void:
 	selected_character = index
 	if notify_player:
 		character_switch_requested.emit(index)
-
-func _build_lobby_preview() -> SubViewportContainer:
-	var container := SubViewportContainer.new()
-	container.stretch = true
-	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var viewport := SubViewport.new()
-	viewport.size = Vector2i(960, 320)
-	viewport.transparent_bg = false
-	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	container.add_child(viewport)
-
-	var world := Node3D.new()
-	viewport.add_child(world)
-	var env_node := WorldEnvironment.new()
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.035, 0.075, 0.13, 1.0)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.72, 0.82, 1.0)
-	env.ambient_light_energy = 1.0
-	env_node.environment = env
-	world.add_child(env_node)
-
-	var key_light := DirectionalLight3D.new()
-	key_light.rotation_degrees = Vector3(-28, -24, 0)
-	key_light.light_energy = 1.5
-	world.add_child(key_light)
-
-	var floor_mesh := MeshInstance3D.new()
-	var floor := PlaneMesh.new()
-	floor.size = Vector2(8, 4)
-	floor_mesh.mesh = floor
-	floor_mesh.position = Vector3(0, -0.025, 0)
-	var floor_mat := StandardMaterial3D.new()
-	floor_mat.albedo_color = Color(0.10, 0.16, 0.23)
-	floor_mat.roughness = 0.82
-	floor_mesh.material_override = floor_mat
-	world.add_child(floor_mesh)
-
-	_add_preview_character(world, 1, -1.05)
-	_add_preview_character(world, 2, 1.05)
-
-	var cam := Camera3D.new()
-	cam.position = Vector3(0, 1.45, 6.8)
-	cam.fov = 38.0
-	world.add_child(cam)
-	cam.look_at(Vector3(0, 1.0, 0), Vector3.UP)
-	cam.current = true
-	return container
-
-func _add_preview_character(parent: Node3D, character_index: int, x_pos: float) -> void:
-	var paths := {
-		1: "res://assets/character_1_teen.glb",
-		2: "res://assets/character_2_cyborg.glb"
-	}
-	var packed := load(paths[character_index]) as PackedScene
-	if packed == null:
-		push_error("Preview character could not load: " + paths[character_index])
-		return
-	var avatar := packed.instantiate() as Node3D
-	parent.add_child(avatar)
-	avatar.position = Vector3(x_pos, 0, 0)
-	avatar.rotation.y = PI
-	_fit_preview_height(avatar, 1.72)
-
-func _fit_preview_height(avatar: Node3D, target_height: float) -> void:
-	var meshes := avatar.find_children("*", "MeshInstance3D", true, false)
-	var combined := AABB()
-	var has_bounds := false
-	for node in meshes:
-		var mesh_node := node as MeshInstance3D
-		if mesh_node.mesh == null:
-			continue
-		var local_bounds: AABB = avatar.global_transform.affine_inverse() * mesh_node.global_transform * mesh_node.get_aabb()
-		if has_bounds:
-			combined = combined.merge(local_bounds)
-		else:
-			combined = local_bounds
-			has_bounds = true
-	if has_bounds and combined.size.y > 0.001:
-		var factor := target_height / combined.size.y
-		avatar.scale = avatar.scale * factor
-		avatar.position.y = -combined.position.y * factor
 
 func set_status(value: String) -> void:
 	if is_instance_valid(status_label):
