@@ -165,7 +165,7 @@ func handle_action(action: String, pressed: bool = true) -> void:
 		"grenade":
 			if pressed: print("Grenade action requested")
 		"interact":
-			if pressed: print("Interact action requested")
+			if pressed: _try_interact()
 		"sit":
 			sitting = pressed
 			if pressed:
@@ -406,3 +406,21 @@ func _emit_status() -> void:
 	if bag_open: modes.append("BAG OPEN")
 	var mode_text := " • ".join(modes) if not modes.is_empty() else "READY"
 	status_changed.emit("%s | HP %d/100 | %s" % [CHARACTER_NAMES[active_character], health, mode_text])
+
+func _try_interact() -> void:
+	if camera == null:
+		return
+	var from := camera.global_position
+	var to := from - camera.global_basis.z * 4.8
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		status_changed.emit("DOOR / WINDOW KE PAAS JAAKAR INTERACT KARO")
+		return
+	var target := hit.get("collider") as Node
+	if target != null and target.is_in_group("world_interactable") and target.has_method("toggle_open"):
+		target.call("toggle_open")
+		status_changed.emit("DOOR / WINDOW / GATE TOGGLED")
+	else:
+		status_changed.emit("YAHAN KOI INTERACTIVE OBJECT NAHI HAI")
