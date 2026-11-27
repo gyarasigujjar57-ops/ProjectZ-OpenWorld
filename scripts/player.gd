@@ -16,7 +16,7 @@ var sitting := false
 var prone := false
 var posture_height := 1.78
 var landing_blend := 0.0
-var camera_distance := 3.35
+var camera_distance := 4.2
 var secondary_bones: Array[int] = []
 var secondary_phase := 0.0
 var aiming := false
@@ -38,7 +38,8 @@ var crouch_speed := 1.7
 var gravity := 22.0
 var jump_velocity := 7.1
 var camera_yaw := 0.0
-var camera_pitch := -7.0
+var camera_pitch := -9.0
+var camera_sensitivity := 0.00165
 var pose_time := 0.0
 var is_jumping := false
 var was_on_floor := true
@@ -128,8 +129,8 @@ func set_move_vector(value: Vector2) -> void:
 	move_vector = value
 
 func rotate_camera(delta_pixels: Vector2) -> void:
-	camera_yaw -= delta_pixels.x * 0.0032
-	camera_pitch = clampf(camera_pitch - delta_pixels.y * 0.14, -32.0, 18.0)
+	camera_yaw -= delta_pixels.x * camera_sensitivity
+	camera_pitch = clampf(camera_pitch - delta_pixels.y * 0.055, -28.0, 12.0)
 	camera_pivot.rotation.y = camera_yaw
 	camera.rotation_degrees.x = camera_pitch
 
@@ -363,9 +364,9 @@ func _set_bone_rot(bone_name: String, euler: Vector3) -> void:
 
 
 func _update_camera(delta: float) -> void:
-	var desired := 3.35
-	if aiming: desired = 1.9
-	if scope_zoom: desired = 1.15
+	var desired := camera_distance
+	if aiming: desired = minf(desired, 2.8)
+	if scope_zoom: desired = 1.35
 	var origin := camera_pivot.global_position
 	var endpoint := origin - camera_pivot.global_basis.z * desired
 	var query := PhysicsRayQueryParameters3D.create(origin, endpoint)
@@ -373,7 +374,7 @@ func _update_camera(delta: float) -> void:
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if not hit.is_empty():
 		desired = maxf(1.1, origin.distance_to(hit.position) - 0.2)
-	camera_distance = lerpf(camera_distance, desired, minf(delta * 10.0, 1.0))
+	camera_distance = lerpf(camera_distance, desired, minf(delta * 7.0, 1.0))
 	camera.position = Vector3(0.28, 0.48, camera_distance)
 
 func _cache_secondary_bones() -> void:
