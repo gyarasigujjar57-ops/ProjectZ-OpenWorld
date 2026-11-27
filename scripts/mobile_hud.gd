@@ -24,8 +24,9 @@ var saved_positions := ConfigFile.new()
 var selected_character := 1
 
 func _ready() -> void:
-	layer = 20
-	_build_hud()
+	# Build after the viewport has completed its first layout pass.
+	layer = 128
+	call_deferred("_build_hud")
 
 func _unhandled_input(event: InputEvent) -> void:
 	if edit_layout:
@@ -54,14 +55,22 @@ func _unhandled_input(event: InputEvent) -> void:
 			joystick.call("move_floating_touch", event.index, event.position)
 
 func _build_hud() -> void:
+	if is_instance_valid(game_layer):
+		game_layer.queue_free()
 	var root := Control.new()
+	root.name = "HUDRoot"
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_PASS
+	root.z_index = 1000
+	root.visible = true
 	add_child(root)
 
 	game_layer = Control.new()
+	game_layer.name = "HUDControls"
 	game_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	game_layer.mouse_filter = Control.MOUSE_FILTER_PASS
+	game_layer.z_index = 1000
+	game_layer.visible = true
 	root.add_child(game_layer)
 
 	joystick = Control.new()
@@ -71,8 +80,19 @@ func _build_hud() -> void:
 	game_layer.add_child(joystick)
 	joystick.vector_changed.connect(func(v): move_vector_changed.emit(v))
 
+	var status_back := Panel.new()
+	status_back.position = Vector2(10, 10)
+	status_back.size = Vector2(440, 42)
+	var status_style := StyleBoxFlat.new()
+	status_style.bg_color = Color(0.015, 0.035, 0.07, 0.78)
+	status_style.set_corner_radius_all(10)
+	status_back.add_theme_stylebox_override("panel", status_style)
+	game_layer.add_child(status_back)
+
 	status_label = Label.new()
-	status_label.position = Vector2(16, 14)
+	status_label.position = Vector2(20, 18)
+	status_label.size = Vector2(420, 28)
+	status_label.text = "PROJECT Z  |  LOADING CONTROLS"
 	status_label.add_theme_font_size_override("font_size", 15)
 	status_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.95))
 	game_layer.add_child(status_label)
@@ -136,6 +156,8 @@ func _build_hud() -> void:
 		b.anchor_bottom = 1.0
 		b.custom_minimum_size = Vector2(BUTTON_SIZE, BUTTON_SIZE)
 		b.size = Vector2(BUTTON_SIZE, BUTTON_SIZE)
+		b.visible = true
+		b.mouse_filter = Control.MOUSE_FILTER_STOP
 		game_layer.add_child(b)
 		_place_action_button(b, i)
 		draggable_controls.append(b)
