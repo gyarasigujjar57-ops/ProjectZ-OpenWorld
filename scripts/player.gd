@@ -16,7 +16,7 @@ var sitting := false
 var prone := false
 var posture_height := 1.78
 var landing_blend := 0.0
-var camera_distance := 4.2
+var camera_distance := 5.8
 var secondary_bones: Array[int] = []
 var secondary_phase := 0.0
 var aiming := false
@@ -70,7 +70,7 @@ func _build_camera() -> void:
 	camera.position = Vector3(0.28, 0.48, camera_distance)
 	camera.rotation_degrees.x = camera_pitch
 	camera.current = true
-	camera.fov = 66.0
+	camera.fov = 72.0
 	camera_pivot.add_child(camera)
 
 func switch_character(index: int) -> void:
