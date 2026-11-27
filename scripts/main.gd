@@ -94,7 +94,9 @@ func _build_homes() -> void:
 			var color: Color = house_colors[count % house_colors.size()]
 			_create_building("Family House %02d" % count, Vector3(x, 0, z), size, color, 2, Color("#8d684d"))
 			_add_box(self, "Front Yard", Vector3(x, 0.14, z + 11.0), Vector3(21, 0.25, 5), Color("#9a9c77"))
-			_add_box(self, "Compound Wall", Vector3(x, 0.65, z + 14.0), Vector3(21, 1.3, 0.45), Color("#d0c7b7"))
+			_add_solid_piece(self, Vector3(x - 6.25, 0.65, z + 14.0), Vector3(8.5, 1.3, 0.45), Color("#d0c7b7"))
+			_add_solid_piece(self, Vector3(x + 6.25, 0.65, z + 14.0), Vector3(8.5, 1.3, 0.45), Color("#d0c7b7"))
+			_create_hinged_panel(self, "Compound Gate", Vector3(x - 2.0, 0.0, z + 14.0), Vector3(4.0, 1.9, 0.16), Color("#5d625e"), 1.2)
 			count += 1
 
 	# A few taller apartment blocks make the colony skyline varied.
@@ -147,33 +149,98 @@ func _build_boundary() -> void:
 	_add_box(self, "West Colony Wall", Vector3(-248, 1.1, 0), Vector3(1.2, 2.2, 500), wall, true)
 
 func _create_building(building_name: String, pos: Vector3, size: Vector3, wall_color: Color, floors: int, accent: Color) -> void:
+	# Enterable shell with actual gaps for the door and front windows.
+	var root := Node3D.new()
+	root.name = building_name
+	root.position = pos
+	add_child(root)
+	var front_z := -size.z * 0.5
+	_add_solid_piece(root, Vector3(0, 0.12, 0), Vector3(size.x, 0.24, size.z), Color("#9b9487"))
+	_add_solid_piece(root, Vector3(0, size.y * 0.5, size.z * 0.5), Vector3(size.x, size.y, 0.35), wall_color)
+	_add_solid_piece(root, Vector3(-size.x * 0.5, size.y * 0.5, 0), Vector3(0.35, size.y, size.z), wall_color)
+	_add_solid_piece(root, Vector3(size.x * 0.5, size.y * 0.5, 0), Vector3(0.35, size.y, size.z), wall_color)
+	_add_solid_piece(root, Vector3(0, size.y + 0.18, 0), Vector3(size.x + 0.8, 0.42, size.z + 0.8), accent)
+
+	var window_centres: Array[float] = []
+	var window_count := clampi(int(size.x / 7.0), 2, 6)
+	for i in range(window_count):
+		window_centres.append(-size.x * 0.5 + (float(i) + 0.5) * size.x / float(window_count))
+	var openings: Array[Dictionary] = [{"x": 0.0, "w": 1.35, "kind": "door"}]
+	for wx in window_centres:
+		if absf(wx) > 1.6:
+			openings.append({"x": wx, "w": 1.45, "kind": "window"})
+	openings.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a.x) < float(b.x))
+	var cursor := -size.x * 0.5
+	for opening in openings:
+		var centre := float(opening.x)
+		var half_width := float(opening.w) * 0.5
+		var segment_width := centre - half_width - cursor
+		if segment_width > 0.08:
+			_add_solid_piece(root, Vector3(cursor + segment_width * 0.5, size.y * 0.5, front_z), Vector3(segment_width, size.y, 0.35), wall_color)
+		cursor = centre + half_width
+	var last_width := size.x * 0.5 - cursor
+	if last_width > 0.08:
+		_add_solid_piece(root, Vector3(cursor + last_width * 0.5, size.y * 0.5, front_z), Vector3(last_width, size.y, 0.35), wall_color)
+
+	# Window openings get real hinged panels, sills and lintels.
+	for wx in window_centres:
+		if absf(wx) <= 1.6:
+			continue
+		_add_solid_piece(root, Vector3(wx, 1.76, front_z), Vector3(1.48, 0.18, 0.40), wall_color)
+		_add_solid_piece(root, Vector3(wx, 3.34, front_z), Vector3(1.48, 0.18, 0.40), wall_color)
+		_create_hinged_panel(root, "Openable Window", Vector3(wx - 0.72, 1.85, front_z - 0.24), Vector3(1.44, 1.35, 0.10), Color("#78a9b8"), 0.95)
+		_add_solid_piece(root, Vector3(wx, 3.48, front_z - 0.30), Vector3(1.72, 0.12, 0.55), accent)
+	_create_hinged_panel(root, "Main Door", Vector3(-0.675, 0.0, front_z - 0.22), Vector3(1.35, 2.35, 0.13), Color("#604331"), 1.35)
+
+	# Small interior details and lighting; these are inside the walkable shell.
+	var ceiling_light := OmniLight3D.new()
+	ceiling_light.position = Vector3(0, size.y - 0.8, 0)
+	ceiling_light.light_color = Color("#ffe5bd")
+	ceiling_light.light_energy = 0.65
+	ceiling_light.omni_range = minf(16.0, size.x * 0.8)
+	root.add_child(ceiling_light)
+	if size.y < 11.0 and size.x > 12.0:
+		_add_solid_piece(root, Vector3(0, 1.45, size.z * 0.12), Vector3(size.x * 0.55, 2.9, 0.18), Color("#c9bba7"), false)
+	_add_box(root, "Entrance Canopy", Vector3(0, 2.65, front_z - 0.78), Vector3(4.8, 0.20, 1.65), accent)
+
+func _add_solid_piece(parent: Node3D, pos: Vector3, size: Vector3, color: Color, solid: bool = true) -> void:
 	var body := StaticBody3D.new()
-	body.name = building_name
 	body.position = pos
-	add_child(body)
+	parent.add_child(body)
+	var mesh_node := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = size
+	mesh_node.mesh = box
+	mesh_node.material_override = _material(color.to_html(), color)
+	body.add_child(mesh_node)
+	if solid:
+		var shape := BoxShape3D.new()
+		shape.size = size
+		var collider := CollisionShape3D.new()
+		collider.shape = shape
+		body.add_child(collider)
+
+func _create_hinged_panel(parent: Node3D, panel_name: String, hinge_pos: Vector3, panel_size: Vector3, color: Color, open_angle: float) -> void:
+	var panel := StaticBody3D.new()
+	panel.name = panel_name
+	panel.position = hinge_pos
+	panel.add_to_group("world_interactable")
+	panel.set_script(load("res://scripts/interactable_prop.gd"))
+	panel.set("open_angle", open_angle)
+	parent.add_child(panel)
+	var mesh_node := MeshInstance3D.new()
+	var panel_mesh := BoxMesh.new()
+	panel_mesh.size = panel_size
+	mesh_node.mesh = panel_mesh
+	mesh_node.position.x = panel_size.x * 0.5
+	mesh_node.material_override = _material(panel_name + color.to_html(), color)
+	panel.add_child(mesh_node)
 	var shape := BoxShape3D.new()
-	shape.size = size
-	var collision := CollisionShape3D.new()
-	collision.shape = shape
-	collision.position.y = size.y * 0.5
-	body.add_child(collision)
-	_add_box(body, "Main Structure", Vector3(0, size.y * 0.5, 0), size, wall_color)
-	_add_box(body, "Roof Slab", Vector3(0, size.y + 0.22, 0), Vector3(size.x + 0.8, 0.45, size.z + 0.8), accent)
-	_add_box(body, "Front Entrance", Vector3(0, 1.25, -size.z * 0.5 - 0.035), Vector3(2.0, 2.5, 0.12), Color("#604b3d"))
-	var window_color := Color("#7fa9b6")
-	var cols := maxi(2, int(size.x / 5.5))
-	var rows := maxi(1, floors)
-	for row in range(rows):
-		for col in range(cols):
-			var wx := -size.x * 0.5 + (float(col) + 0.5) * size.x / float(cols)
-			var wy := 2.3 + float(row) * (size.y / float(rows))
-			_add_box(body, "Front Window", Vector3(wx, wy, -size.z * 0.5 - 0.045), Vector3(1.7, 1.35, 0.1), window_color)
-			_add_box(body, "Window Shade", Vector3(wx, wy + 0.78, -size.z * 0.5 - 0.12), Vector3(2.0, 0.12, 0.32), accent)
-	for side in [-1.0, 1.0]:
-		for row in range(rows):
-			var wy := 2.3 + float(row) * (size.y / float(rows))
-			_add_box(body, "Side Window", Vector3(side * (size.x * 0.5 + 0.045), wy, 0), Vector3(0.1, 1.35, 2.0), window_color)
-	_add_box(body, "Front Canopy", Vector3(0, 2.75, -size.z * 0.5 - 0.8), Vector3(5.0, 0.22, 1.8), accent)
+	shape.size = panel_size
+	var collider := CollisionShape3D.new()
+	collider.shape = shape
+	collider.position.x = panel_size.x * 0.5
+	panel.add_child(collider)
 
 func _create_tree(pos: Vector3, scale_factor: float) -> void:
 	var trunk := MeshInstance3D.new()
