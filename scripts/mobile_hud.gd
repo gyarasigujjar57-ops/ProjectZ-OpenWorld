@@ -117,15 +117,17 @@ func _build_hud() -> void:
 	lobby.add_child(shade)
 	var title := Label.new()
 	title.text = "PROJECT Z"
-	title.position = Vector2(0, 55)
 	title.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	title.position = Vector2(0, 48)
+	title.size = Vector2(1280, 56)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 42)
 	lobby.add_child(title)
 	var subtitle := Label.new()
 	subtitle.text = "OPEN WORLD  •  THIRD PERSON"
-	subtitle.position = Vector2(0, 105)
 	subtitle.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	subtitle.position = Vector2(0, 104)
+	subtitle.size = Vector2(1280, 28)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.add_theme_font_size_override("font_size", 16)
 	lobby.add_child(subtitle)
@@ -140,29 +142,51 @@ func _build_hud() -> void:
 
 	var choose := Label.new()
 	choose.text = "SELECT CHARACTER"
-	choose.position = Vector2(0, 405)
 	choose.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	choose.position = Vector2(0, 397)
+	choose.size = Vector2(1280, 30)
 	choose.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lobby.add_child(choose)
 	var teen := Button.new()
 	teen.text = "CHARACTER 1"
-	teen.position = Vector2(0, 438)
-	teen.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	teen.custom_minimum_size = Vector2(180, 48)
+	teen.anchor_left = 0.5
+	teen.anchor_right = 0.5
+	teen.anchor_top = 0.0
+	teen.anchor_bottom = 0.0
+	teen.offset_left = -110
+	teen.offset_right = 110
+	teen.offset_top = 435
+	teen.offset_bottom = 483
+	teen.size = Vector2(220, 48)
+	teen.custom_minimum_size = Vector2(220, 48)
 	teen.pressed.connect(func(): _select_character(1))
 	lobby.add_child(teen)
 	var cyborg := Button.new()
 	cyborg.text = "CHARACTER 2"
-	cyborg.position = Vector2(0, 492)
-	cyborg.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	cyborg.custom_minimum_size = Vector2(180, 48)
+	cyborg.anchor_left = 0.5
+	cyborg.anchor_right = 0.5
+	cyborg.anchor_top = 0.0
+	cyborg.anchor_bottom = 0.0
+	cyborg.offset_left = -110
+	cyborg.offset_right = 110
+	cyborg.offset_top = 490
+	cyborg.offset_bottom = 538
+	cyborg.size = Vector2(220, 48)
+	cyborg.custom_minimum_size = Vector2(220, 48)
 	cyborg.pressed.connect(func(): _select_character(2))
 	lobby.add_child(cyborg)
 	var start := Button.new()
 	start.text = "▶   START"
-	start.position = Vector2(0, 565)
-	start.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	start.custom_minimum_size = Vector2(220, 64)
+	start.anchor_left = 0.5
+	start.anchor_right = 0.5
+	start.anchor_top = 0.0
+	start.anchor_bottom = 0.0
+	start.offset_left = -125
+	start.offset_right = 125
+	start.offset_top = 565
+	start.offset_bottom = 633
+	start.size = Vector2(250, 68)
+	start.custom_minimum_size = Vector2(250, 68)
 	start.add_theme_font_size_override("font_size", 24)
 	start.pressed.connect(_start_game)
 	lobby.add_child(start)
