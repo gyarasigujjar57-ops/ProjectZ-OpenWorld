@@ -50,7 +50,7 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag:
 		if event.index == camera_touch_index:
 			var p: Vector2 = event.position
-			camera_dragged.emit((p - last_camera_touch) * 1.25)
+			camera_dragged.emit(p - last_camera_touch)
 			last_camera_touch = p
 		elif is_instance_valid(joystick):
 			joystick.call("move_floating_touch", event.index, event.position)
