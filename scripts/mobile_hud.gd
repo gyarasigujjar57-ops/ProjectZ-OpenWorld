@@ -7,8 +7,8 @@ signal camera_dragged(delta_pixels: Vector2)
 signal game_started
 
 const JoystickScript = preload("res://scripts/virtual_joystick.gd")
-const BUTTON_SIZE := 66.0
-const BUTTON_GAP := 12.0
+const BUTTON_SIZE := 54.0
+const BUTTON_GAP := 8.0
 var status_label: Label
 var lobby: Control
 var game_layer: Control
@@ -214,17 +214,14 @@ func _build_hud() -> void:
 		["▤", "bag", false, -416, -185],
 		["E", "interact", false, -494, -185]
 	]
-	for spec in actions:
+	for i in range(actions.size()):
+		var spec: Array = actions[i]
 		var b := _make_round_button(String(spec[0]), String(spec[1]), bool(spec[2]))
-		b.anchor_left = 1.0
-		b.anchor_right = 1.0
-		b.anchor_top = 1.0
-		b.anchor_bottom = 1.0
-		b.offset_left = float(spec[3])
-		b.offset_right = float(spec[3]) + BUTTON_SIZE
-		b.offset_top = float(spec[4])
-		b.offset_bottom = float(spec[4]) + BUTTON_SIZE
+		b.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+		b.custom_minimum_size = Vector2(BUTTON_SIZE, BUTTON_SIZE)
+		b.size = Vector2(BUTTON_SIZE, BUTTON_SIZE)
 		game_layer.add_child(b)
+		_place_action_button(b, i)
 		draggable_controls.append(b)
 		button_keys.append(String(spec[1]))
 		_load_control_position(b, String(spec[1]))
@@ -319,13 +316,21 @@ func _load_control_position(control: Control, key: String) -> void:
 			control.offset_top = float(p[1])
 			control.offset_bottom = float(p[1]) + BUTTON_SIZE
 
+func _place_action_button(control: Control, index: int) -> void:
+	var vp := get_viewport().get_visible_rect().size
+	var columns := 4
+	var col := index % columns
+	var row := int(index / columns)
+	var right_margin := 14.0
+	var bottom_margin := 14.0
+	control.position = Vector2(
+		vp.x - right_margin - BUTTON_SIZE - float(columns - 1 - col) * (BUTTON_SIZE + BUTTON_GAP),
+		vp.y - bottom_margin - BUTTON_SIZE - float(2 - row) * (BUTTON_SIZE + BUTTON_GAP)
+	)
+
 func _reset_layout() -> void:
 	for i in range(draggable_controls.size()):
-		var c := draggable_controls[i]
-		c.offset_left = [-104.0, -182.0, -104.0, -260.0, -338.0, -416.0, -494.0, -338.0, -182.0, -260.0, -416.0, -494.0][i]
-		c.offset_right = c.offset_left + BUTTON_SIZE
-		c.offset_top = [-185.0, -110.0, -110.0, -110.0, -110.0, -110.0, -110.0, -185.0, -185.0, -185.0, -185.0, -185.0][i]
-		c.offset_bottom = c.offset_top + BUTTON_SIZE
+		_place_action_button(draggable_controls[i], i)
 	saved_positions.clear()
 	saved_positions.save("user://hud_layout.cfg")
 
