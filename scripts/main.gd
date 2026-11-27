@@ -26,8 +26,7 @@ func _ready() -> void:
 	hud.camera_dragged.connect(player.rotate_camera)
 	player.status_changed.connect(hud.set_status)
 	hud.set_active_character(1)
-	player.set_physics_process(false)
-	hud.game_started.connect(func(): player.set_physics_process(true))
+	# Direct gameplay startup: player physics runs immediately; no lobby Start button is required.
 
 func _build_world() -> void:
 	var world_env := WorldEnvironment.new()
