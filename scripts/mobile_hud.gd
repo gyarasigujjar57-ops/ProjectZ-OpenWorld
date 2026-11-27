@@ -63,7 +63,7 @@ func _build_hud() -> void:
 
 	game_layer = Control.new()
 	game_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	game_layer.visible = false
+	game_layer.visible = true
 	root.add_child(game_layer)
 
 	joystick = Control.new()
@@ -110,6 +110,9 @@ func _build_hud() -> void:
 	lobby = Control.new()
 	lobby.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_child(lobby)
+	# Temporary direct-to-game startup: keep the lobby code/assets but do not show it.
+	lobby.visible = false
+	game_active = true
 	var shade := ColorRect.new()
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.color = Color(0.025, 0.045, 0.08, 0.72)
