@@ -340,7 +340,41 @@ func _material(key: String, color: Color) -> StandardMaterial3D:
 	if materials.has(key):
 		return materials[key] as StandardMaterial3D
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.roughness = 0.82
+	mat.albedo_color = Color.WHITE
+	mat.albedo_texture = _generate_surface_texture(color, abs(key.hash()))
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	mat.roughness = 0.84
+	mat.metallic = 0.0
 	materials[key] = mat
 	return mat
+
+
+# Small deterministic texture maps are generated once per material and reused.
+# This keeps the project self-contained instead of importing a separate image
+# for every wall, floor, roof or prop.
+func _generate_surface_texture(base: Color, seed_value: int) -> ImageTexture:
+	const TEX_SIZE := 128
+	var image := Image.create(TEX_SIZE, TEX_SIZE, false, Image.FORMAT_RGBA8)
+	var seed_float := float(seed_value % 997) * 0.013
+	var luminance := (base.r + base.g + base.b) / 3.0
+	var grain_strength := 0.035 if luminance > 0.42 else 0.055
+	for y in range(TEX_SIZE):
+		for x in range(TEX_SIZE):
+			var wave := sin(float(x) * 0.19 + seed_float) * 0.35
+			wave += cos(float(y) * 0.13 + seed_float * 1.7) * 0.25
+			var fine := sin(float(x * 17 + y * 31) * 0.071 + seed_float * 4.0) * 0.20
+			var broad := sin(float(x) * 0.047 + seed_float) * cos(float(y) * 0.039) * 0.20
+			var variation := (wave + fine + broad) * grain_strength
+			var mortar_line := 0.0
+			# Very subtle horizontal/vertical variation gives plaster and concrete
+			# surfaces a tactile finish without creating a visible repeating grid.
+			if y % 32 == 0:
+				mortar_line -= 0.012
+			var pixel := Color(
+				clampf(base.r + variation + mortar_line, 0.0, 1.0),
+				clampf(base.g + variation + mortar_line, 0.0, 1.0),
+				clampf(base.b + variation + mortar_line, 0.0, 1.0),
+				1.0
+			)
+			image.set_pixel(x, y, pixel)
+	return ImageTexture.create_from_image(image)
