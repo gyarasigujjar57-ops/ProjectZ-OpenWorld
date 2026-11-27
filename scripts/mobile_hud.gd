@@ -204,7 +204,8 @@ func _build_hud() -> void:
 		["☺", "emote", false, -338, -110],
 		["＋", "zoom_in", false, -182, -185],
 		["－", "zoom_out", false, -260, -185],
-		["▤", "bag", false, -338, -185]
+		["▤", "bag", false, -338, -185],
+		["E", "interact", false, -416, -110]
 	]
 	for spec in actions:
 		var b := _make_round_button(String(spec[0]), String(spec[1]), bool(spec[2]))
