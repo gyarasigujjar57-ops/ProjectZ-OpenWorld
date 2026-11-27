@@ -304,17 +304,14 @@ func _handle_control_drag(control: Control, key: String, event: InputEvent) -> v
 		drag_control = null
 
 func _save_control_position(control: Control, key: String) -> void:
-	saved_positions.set_value("hud", key, [control.offset_left, control.offset_top])
+	saved_positions.set_value("hud", key, [control.position.x, control.position.y])
 	saved_positions.save("user://hud_layout.cfg")
 
 func _load_control_position(control: Control, key: String) -> void:
 	if saved_positions.load("user://hud_layout.cfg") == OK:
 		var p = saved_positions.get_value("hud", key, null)
-		if p is Array and p.size() == 2:
-			control.offset_left = float(p[0])
-			control.offset_right = float(p[0]) + BUTTON_SIZE
-			control.offset_top = float(p[1])
-			control.offset_bottom = float(p[1]) + BUTTON_SIZE
+		if p is Array and p.size() == 2 and float(p[0]) >= 0.0 and float(p[1]) >= 0.0:
+			control.position = Vector2(float(p[0]), float(p[1]))
 
 func _place_action_button(control: Control, index: int) -> void:
 	var vp := get_viewport().get_visible_rect().size
