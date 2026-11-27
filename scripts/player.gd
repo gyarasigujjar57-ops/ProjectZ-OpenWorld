@@ -46,6 +46,10 @@ var was_on_floor := true
 var capsule_collision: CollisionShape3D
 var capsule_shape: CapsuleShape3D
 var crouch_blend := 0.0
+var auto_run := false
+var sliding := false
+var slide_time_left := 0.0
+const SLIDE_DURATION := 0.65
 
 func _ready() -> void:
 	_build_collision()
@@ -137,6 +141,14 @@ func rotate_camera(delta_pixels: Vector2) -> void:
 func handle_action(action: String, pressed: bool = true) -> void:
 	match action:
 		"sprint": sprinting = pressed
+		"auto_run":
+			if pressed: auto_run = not auto_run
+			if auto_run: move_vector = Vector2(0.0, -1.0)
+			else: move_vector = Vector2.ZERO
+		"slide":
+			if pressed and is_on_floor() and sprinting and not crouching and not sitting and not prone:
+				sliding = true
+				slide_time_left = SLIDE_DURATION
 		"crouch":
 			crouching = pressed
 			if pressed:
@@ -199,12 +211,18 @@ func _physics_process(delta: float) -> void:
 	capsule_shape.height = posture_height
 	capsule_collision.position.y = posture_height * 0.5
 
+	if sliding:
+		slide_time_left -= delta
+		if slide_time_left <= 0.0 or not is_on_floor():
+			sliding = false
 	var stick_strength := clampf(move_vector.length(), 0.0, 1.0)
 	var current_speed := speed
 	if sprinting and not crouching and not sitting and not prone:
 		current_speed = sprint_speed
 	if crouching:
 		current_speed = crouch_speed
+	if sliding:
+		current_speed = sprint_speed * 1.12
 	if sitting or prone:
 		current_speed = 0.0
 	if driving_mode:
@@ -243,6 +261,8 @@ func _physics_process(delta: float) -> void:
 		_apply_procedural_pose("sit", delta)
 	elif prone:
 		_apply_procedural_pose("prone", delta)
+	elif sliding:
+		_apply_procedural_pose("crouch", delta)
 	elif crouching:
 		_apply_procedural_pose("crouch", delta)
 	elif moving:
@@ -398,6 +418,8 @@ func _update_secondary_motion() -> void:
 func _emit_status() -> void:
 	var modes: Array[String] = []
 	if sprinting: modes.append("SPRINT")
+	if auto_run: modes.append("AUTO RUN")
+	if sliding: modes.append("SLIDE")
 	if crouching: modes.append("CROUCH")
 	if sitting: modes.append("SIT")
 	if prone: modes.append("PRONE")
