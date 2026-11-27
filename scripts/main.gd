@@ -182,6 +182,13 @@ func _create_building(building_name: String, pos: Vector3, size: Vector3, wall_c
 	if last_width > 0.08:
 		_add_solid_piece(root, Vector3(cursor + last_width * 0.5, size.y * 0.5, front_z), Vector3(last_width, size.y, 0.35), wall_color)
 
+	# Solid lower facade beside the doorway and continuous upper lintel wall.
+	var lower_side_width := (size.x - 1.35) * 0.5
+	_add_solid_piece(root, Vector3(-0.675 - lower_side_width * 0.5, 0.82, front_z), Vector3(lower_side_width, 1.64, 0.35), wall_color)
+	_add_solid_piece(root, Vector3(0.675 + lower_side_width * 0.5, 0.82, front_z), Vector3(lower_side_width, 1.64, 0.35), wall_color)
+	if size.y > 3.5:
+		_add_solid_piece(root, Vector3(0, (size.y + 3.48) * 0.5, front_z), Vector3(size.x, size.y - 3.48, 0.35), wall_color)
+
 	# Window openings get real hinged panels, sills and lintels.
 	for wx in window_centres:
 		if absf(wx) <= 1.6:
