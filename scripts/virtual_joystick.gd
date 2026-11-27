@@ -6,7 +6,7 @@ signal vector_changed(value: Vector2)
 var finger_id := -1
 var knob := Vector2.ZERO
 var active := false
-var radius := 76.0
+var radius := 78.0
 var floating_center := Vector2.ZERO
 var using_floating := false
 
@@ -21,6 +21,12 @@ func begin_floating_touch(id: int, screen_pos: Vector2) -> void:
 	active = true
 	using_floating = true
 	floating_center = Vector2(128.0, get_viewport_rect().size.y - 132.0)
+	# Fixed thumb zone: ignore touches outside the visible left joystick pad.
+	if screen_pos.distance_to(floating_center) > radius + 58.0:
+		finger_id = -1
+		active = false
+		using_floating = false
+		return
 	queue_redraw()
 	_update_knob(screen_pos)
 
