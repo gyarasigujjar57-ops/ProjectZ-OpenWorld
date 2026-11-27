@@ -4,6 +4,7 @@ const PlayerScript = preload("res://scripts/player.gd")
 const HudScript = preload("res://scripts/mobile_hud.gd")
 
 var materials: Dictionary = {}
+var asphalt_material: ShaderMaterial
 
 func _ready() -> void:
 	_build_world()
@@ -280,7 +281,13 @@ func _add_box(parent: Node, node_name: String, pos: Vector3, size: Vector3, colo
 	box.size = size
 	mesh_instance.mesh = box
 	mesh_instance.position = pos
-	mesh_instance.material_override = _material(color.to_html(), color)
+	if (node_name.begins_with("Main Road") and not node_name.contains("Sidewalk")) or node_name.contains("Avenue"):
+		if asphalt_material == null:
+			asphalt_material = ShaderMaterial.new()
+			asphalt_material.shader = load("res://materials/asphalt.gdshader")
+		mesh_instance.material_override = asphalt_material
+	else:
+		mesh_instance.material_override = _material(color.to_html(), color)
 	if parent is StaticBody3D:
 		parent.add_child(mesh_instance)
 	else:
