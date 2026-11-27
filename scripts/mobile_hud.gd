@@ -196,16 +196,20 @@ func _build_hud() -> void:
 	status_label.add_theme_font_size_override("font_size", 13)
 	game_layer.add_child(status_label)
 
+	# Landscape third-person HUD: every movement/action is a real touch button, not status text.
 	var actions := [
-		["⤒", "jump", false, -104, -185],
-		["➤", "sprint", true, -182, -110],
+		["⬆", "jump", false, -104, -185],
+		["⚡", "sprint", true, -182, -110],
 		["◎", "aim", true, -104, -110],
 		["▣", "crouch", true, -260, -110],
-		["☺", "emote", false, -338, -110],
+		["🪑", "sit", true, -338, -110],
+		["⬇", "prone", true, -416, -110],
+		["⇄", "switch", false, -494, -110],
+		["☺", "emote", false, -338, -185],
 		["＋", "zoom_in", false, -182, -185],
 		["－", "zoom_out", false, -260, -185],
-		["▤", "bag", false, -338, -185],
-		["E", "interact", false, -416, -110]
+		["▤", "bag", false, -416, -185],
+		["E", "interact", false, -494, -185]
 	]
 	for spec in actions:
 		var b := _make_round_button(String(spec[0]), String(spec[1]), bool(spec[2]))
@@ -236,7 +240,7 @@ func _build_hud() -> void:
 	game_layer.add_child(emote_panel)
 	var emotes := HBoxContainer.new()
 	emote_panel.add_child(emotes)
-	for pair in [["👋","emote_wave"],["♫","emote_dance"],["🪑","sit"],["⬇","prone"]]:
+	for pair in [["👋","emote_wave"],["♫","emote_dance"]]:
 		var eb := _make_round_button(String(pair[0]), String(pair[1]), false)
 		emotes.add_child(eb)
 		eb.pressed.connect(_fire_emote.bind(String(pair[1])))
@@ -272,6 +276,8 @@ func _make_round_button(glyph: String, key: String, toggled: bool) -> Button:
 func _connect_action(b: Button, action: String, toggled: bool) -> void:
 	if action == "emote":
 		b.pressed.connect(func(): emote_panel.visible = not emote_panel.visible)
+	elif action == "switch":
+		b.pressed.connect(func(): _select_character(2 if selected_character == 1 else 1))
 	elif toggled:
 		b.toggled.connect(func(on): action_triggered.emit(action, on))
 	else:
@@ -313,9 +319,9 @@ func _load_control_position(control: Control, key: String) -> void:
 func _reset_layout() -> void:
 	for i in range(draggable_controls.size()):
 		var c := draggable_controls[i]
-		c.offset_left = [-104.0, -182.0, -104.0, -260.0, -338.0, -182.0, -260.0, -338.0][i]
+		c.offset_left = [-104.0, -182.0, -104.0, -260.0, -338.0, -416.0, -494.0, -338.0, -182.0, -260.0, -416.0, -494.0][i]
 		c.offset_right = c.offset_left + BUTTON_SIZE
-		c.offset_top = [-185.0, -110.0, -110.0, -110.0, -110.0, -185.0, -185.0, -185.0][i]
+		c.offset_top = [-185.0, -110.0, -110.0, -110.0, -110.0, -110.0, -110.0, -185.0, -185.0, -185.0, -185.0, -185.0][i]
 		c.offset_bottom = c.offset_top + BUTTON_SIZE
 	saved_positions.clear()
 	saved_positions.save("user://hud_layout.cfg")
