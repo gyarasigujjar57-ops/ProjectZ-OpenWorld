@@ -213,6 +213,8 @@ func _create_building(building_name: String, pos: Vector3, size: Vector3, wall_c
 		_add_solid_piece(root, Vector3(0, 1.45, size.z * 0.12), Vector3(size.x * 0.55, 2.9, 0.18), Color("#c9bba7"), false)
 	_add_box(root, "Entrance Canopy", Vector3(0, 2.65, front_z - 0.78), Vector3(4.8, 0.20, 1.65), accent)
 	_add_facade_details(root, size, floors, accent)
+	if building_name.begins_with("Family House"):
+		_add_family_house_details(root, size, wall_color, accent)
 
 func _add_facade_details(root: Node3D, size: Vector3, floors: int, accent: Color) -> void:
 	var front_z := -size.z * 0.5 - 0.24
@@ -378,3 +380,55 @@ func _generate_surface_texture(base: Color, seed_value: int) -> ImageTexture:
 			)
 			image.set_pixel(x, y, pixel)
 	return ImageTexture.create_from_image(image)
+
+
+# More complete Indian residential-house finish: sloped tiled roof, fascia,
+# rain gutters, downpipes, porch, steps, utility box and exterior lighting.
+func _add_family_house_details(root: Node3D, size: Vector3, wall_color: Color, accent: Color) -> void:
+	var front_z := -size.z * 0.5
+	var roof_y := size.y + 0.72
+	var roof_color := Color("#874a32")
+	var roof_width := size.x * 0.57
+	var roof_depth := size.z + 1.35
+	_add_sloped_roof_panel(root, Vector3(-size.x * 0.245, roof_y + 0.32, 0), Vector3(roof_width, 0.24, roof_depth), 25.0, roof_color)
+	_add_sloped_roof_panel(root, Vector3(size.x * 0.245, roof_y + 0.32, 0), Vector3(roof_width, 0.24, roof_depth), -25.0, roof_color)
+	_add_solid_piece(root, Vector3(0, roof_y + 1.02, 0), Vector3(0.55, 0.32, roof_depth), Color("#633b2d"), false)
+	# Eaves and rainwater collection channels.
+	for side in [-1.0, 1.0]:
+		_add_solid_piece(root, Vector3(side * (size.x * 0.5 + 0.48), size.y + 0.28, 0), Vector3(0.22, 0.20, size.z + 1.25), Color("#5b5148"), false)
+		_add_solid_piece(root, Vector3(side * (size.x * 0.5 + 0.48), size.y - 1.15, front_z - 0.56), Vector3(0.13, 2.3, 0.13), Color("#777b78"), false)
+	# Entrance porch: two masonry columns, broad landing and two steps.
+	_add_solid_piece(root, Vector3(-2.65, 1.55, front_z - 1.0), Vector3(0.34, 3.1, 0.34), wall_color.lightened(0.12), false)
+	_add_solid_piece(root, Vector3(2.65, 1.55, front_z - 1.0), Vector3(0.34, 3.1, 0.34), wall_color.lightened(0.12), false)
+	_add_solid_piece(root, Vector3(0, 3.18, front_z - 1.0), Vector3(6.0, 0.22, 2.15), accent, false)
+	_add_solid_piece(root, Vector3(0, 0.20, front_z - 1.45), Vector3(5.8, 0.34, 2.4), Color("#b8afa0"), false)
+	_add_solid_piece(root, Vector3(0, 0.09, front_z - 2.25), Vector3(4.8, 0.18, 0.75), Color("#a49b8d"), false)
+	# Foundation plinth, window shade ledges and side-wall utility details.
+	_add_solid_piece(root, Vector3(0, 0.42, front_z - 0.19), Vector3(size.x - 0.8, 0.28, 0.18), Color("#aaa397"), false)
+	var window_count := clampi(int(size.x / 7.0), 2, 6)
+	for i in range(window_count):
+		var wx := -size.x * 0.5 + (float(i) + 0.5) * size.x / float(window_count)
+		if absf(wx) < 1.6:
+			continue
+		_add_solid_piece(root, Vector3(wx, 1.66, front_z - 0.43), Vector3(1.95, 0.13, 0.72), Color("#bdb4a6"), false)
+		_add_solid_piece(root, Vector3(wx - 1.0, 2.55, front_z - 0.28), Vector3(0.12, 1.9, 0.12), accent.darkened(0.12), false)
+		_add_solid_piece(root, Vector3(wx + 1.0, 2.55, front_z - 0.28), Vector3(0.12, 1.9, 0.12), accent.darkened(0.12), false)
+	# Electrical meter and a small wall light beside the entrance.
+	_add_solid_piece(root, Vector3(size.x * 0.38, 1.35, front_z - 0.24), Vector3(0.48, 0.72, 0.18), Color("#d5d5ce"), false)
+	_add_solid_piece(root, Vector3(3.55, 2.55, front_z - 0.32), Vector3(0.28, 0.42, 0.18), Color("#e8d7a5"), false)
+	var porch_light := OmniLight3D.new()
+	porch_light.position = Vector3(3.55, 2.5, front_z - 0.62)
+	porch_light.light_color = Color("#ffdba1")
+	porch_light.light_energy = 0.22
+	porch_light.omni_range = 4.5
+	root.add_child(porch_light)
+
+func _add_sloped_roof_panel(parent: Node3D, pos: Vector3, panel_size: Vector3, angle_degrees: float, color: Color) -> void:
+	var roof := MeshInstance3D.new()
+	var slab := BoxMesh.new()
+	slab.size = panel_size
+	roof.mesh = slab
+	roof.position = pos
+	roof.rotation_degrees.z = angle_degrees
+	roof.material_override = _material("terracotta_roof_" + color.to_html(), color)
+	parent.add_child(roof)
