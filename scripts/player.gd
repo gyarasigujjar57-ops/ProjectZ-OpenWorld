@@ -16,7 +16,7 @@ var sitting := false
 var prone := false
 var posture_height := 1.78
 var landing_blend := 0.0
-var camera_distance := 5.8
+var camera_distance := 4.8
 var secondary_bones: Array[int] = []
 var secondary_phase := 0.0
 var aiming := false
@@ -38,7 +38,7 @@ var crouch_speed := 1.7
 var gravity := 22.0
 var jump_velocity := 7.1
 var camera_yaw := 0.0
-var camera_pitch := -9.0
+var camera_pitch := -7.0
 var camera_sensitivity := 0.00165
 var pose_time := 0.0
 var is_jumping := false
@@ -63,14 +63,14 @@ func _build_collision() -> void:
 
 func _build_camera() -> void:
 	camera_pivot = Node3D.new()
-	camera_pivot.position = Vector3(0, 1.45, 0)
+	camera_pivot.position = Vector3(0, 1.18, 0)
 	add_child(camera_pivot)
 
 	camera = Camera3D.new()
-	camera.position = Vector3(0.28, 0.48, camera_distance)
+	camera.position = Vector3(0.22, 0.38, camera_distance)
 	camera.rotation_degrees.x = camera_pitch
 	camera.current = true
-	camera.fov = 72.0
+	camera.fov = 60.0
 	camera_pivot.add_child(camera)
 
 func switch_character(index: int) -> void:
